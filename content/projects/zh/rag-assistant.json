@@ -1,0 +1,8 @@
+{
+  "title": "RAG 问答助手",
+  "description": "基于检索增强生成的文档问答系统，支持 PDF/Markdown 上传、向量检索与流式回答。",
+  "date": "2026-06-15",
+  "tags": ["Python", "LangChain", "ChromaDB", "OpenAI"],
+  "github": "https://github.com",
+  "featured": true
+}

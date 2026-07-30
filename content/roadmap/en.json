@@ -1,0 +1,44 @@
+[
+  {
+    "id": "foundations",
+    "title": "Math & Programming Foundations",
+    "description": "Linear algebra, probability, Python, and PyTorch basics — the groundwork for deep learning.",
+    "status": "completed",
+    "topics": ["Linear Algebra", "Python", "PyTorch"]
+  },
+  {
+    "id": "deep-learning",
+    "title": "Deep Learning Core",
+    "description": "Neural network fundamentals, CNNs, RNNs, optimization, and regularization. CS231n / CS224n core chapters.",
+    "status": "completed",
+    "topics": ["CNN", "RNN", "Optimization"]
+  },
+  {
+    "id": "nlp-transformer",
+    "title": "NLP & Transformers",
+    "description": "From Word2Vec to BERT and GPT. Deep dive into Self-Attention and the pretraining paradigm.",
+    "status": "inProgress",
+    "topics": ["Transformer", "BERT", "GPT"]
+  },
+  {
+    "id": "llm-engineering",
+    "title": "LLM Engineering",
+    "description": "Prompt engineering, RAG, agent frameworks, fine-tuning, and deployment.",
+    "status": "inProgress",
+    "topics": ["RAG", "Fine-tuning", "Agents"]
+  },
+  {
+    "id": "multimodal",
+    "title": "Multimodal & Frontier",
+    "description": "Vision-language models, diffusion models, world models, and emerging research directions.",
+    "status": "planned",
+    "topics": ["VLM", "Diffusion", "World Models"]
+  },
+  {
+    "id": "research",
+    "title": "Research Methodology",
+    "description": "Paper reading, experiment design, writing, and reproduction — building independent research skills.",
+    "status": "planned",
+    "topics": ["Paper Reading", "Experiment Design", "Writing"]
+  }
+]

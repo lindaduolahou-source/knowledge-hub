@@ -1,0 +1,9 @@
+{
+  "title": "Knowledge Hub",
+  "description": "Personal knowledge homepage — a Markdown-based CMS for blog posts, project showcases, learning roadmaps, and thoughts.",
+  "date": "2026-07-01",
+  "tags": ["Next.js", "TypeScript", "Tailwind CSS"],
+  "github": "https://github.com",
+  "demo": "https://example.com",
+  "featured": true
+}

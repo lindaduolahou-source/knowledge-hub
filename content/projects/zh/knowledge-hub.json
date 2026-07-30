@@ -1,0 +1,9 @@
+{
+  "title": "Knowledge Hub",
+  "description": "个人知识主页 — 基于 Markdown 的内容管理系统，支持博客、项目展示、学习路线与思考笔记。",
+  "date": "2026-07-01",
+  "tags": ["Next.js", "TypeScript", "Tailwind CSS"],
+  "github": "https://github.com",
+  "demo": "https://example.com",
+  "featured": true
+}

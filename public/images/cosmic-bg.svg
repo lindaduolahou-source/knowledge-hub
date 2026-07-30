@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#151528"/>
+      <stop offset="55%" stop-color="#070712"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <radialGradient id="nebula1" cx="28%" cy="72%" r="50%">
+      <stop offset="0%" stop-color="#3a2468" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#0a0a12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula2" cx="78%" cy="22%" r="45%">
+      <stop offset="0%" stop-color="#1c3d72" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0a0a12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula3" cx="52%" cy="48%" r="35%">
+      <stop offset="0%" stop-color="#4a2060" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#0a0a12" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+  <rect width="1920" height="1080" fill="url(#nebula1)"/>
+  <rect width="1920" height="1080" fill="url(#nebula2)"/>
+  <rect width="1920" height="1080" fill="url(#nebula3)"/>
+</svg>

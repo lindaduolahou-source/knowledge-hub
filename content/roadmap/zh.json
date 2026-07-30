@@ -1,0 +1,44 @@
+[
+  {
+    "id": "foundations",
+    "title": "数学与编程基础",
+    "description": "线性代数、概率统计、Python 与 PyTorch 基础。为后续深度学习打下坚实基础。",
+    "status": "completed",
+    "topics": ["Linear Algebra", "Python", "PyTorch"]
+  },
+  {
+    "id": "deep-learning",
+    "title": "深度学习核心",
+    "description": "神经网络原理、CNN、RNN、优化算法与正则化技术。完成 CS231n / CS224n 核心章节。",
+    "status": "completed",
+    "topics": ["CNN", "RNN", "Optimization"]
+  },
+  {
+    "id": "nlp-transformer",
+    "title": "NLP 与 Transformer",
+    "description": "从 Word2Vec 到 BERT、GPT 系列。深入理解 Self-Attention 机制与预训练范式。",
+    "status": "inProgress",
+    "topics": ["Transformer", "BERT", "GPT"]
+  },
+  {
+    "id": "llm-engineering",
+    "title": "LLM 工程实践",
+    "description": "Prompt Engineering、RAG、Agent 框架、微调与部署。将模型能力落地到实际应用。",
+    "status": "inProgress",
+    "topics": ["RAG", "Fine-tuning", "Agents"]
+  },
+  {
+    "id": "multimodal",
+    "title": "多模态与前沿探索",
+    "description": "Vision-Language Models、Diffusion Models、World Models 等前沿方向。",
+    "status": "planned",
+    "topics": ["VLM", "Diffusion", "World Models"]
+  },
+  {
+    "id": "research",
+    "title": "科研方法论",
+    "description": "论文阅读、实验设计、写作与复现。培养独立研究能力。",
+    "status": "planned",
+    "topics": ["Paper Reading", "Experiment Design", "Writing"]
+  }
+]

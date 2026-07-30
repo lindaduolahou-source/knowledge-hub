@@ -1,0 +1,8 @@
+{
+  "title": "RAG Q&A Assistant",
+  "description": "A retrieval-augmented document Q&A system with PDF/Markdown upload, vector search, and streaming responses.",
+  "date": "2026-06-15",
+  "tags": ["Python", "LangChain", "ChromaDB", "OpenAI"],
+  "github": "https://github.com",
+  "featured": true
+}
