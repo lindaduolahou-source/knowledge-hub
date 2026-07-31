@@ -75,7 +75,13 @@ export default async function RoadmapPage({
           defaults={[]}
           hideAdd
         />
-        <RoadmapTimeline locale={loc} items={items} dict={dict} />
+        <RoadmapTimeline
+          locale={loc}
+          moduleId="roadmap"
+          items={items}
+          dict={dict}
+          hideAdd
+        />
         <EditableProjectGrid
           locale={loc}
           dict={dict}
@@ -91,7 +97,12 @@ export default async function RoadmapPage({
           readMore={dict.blog.readMore}
           hideAdd
         />
-        <ModuleAddMenu locale={loc} dict={dict} moduleId="roadmap" />
+        <ModuleAddMenu
+          locale={loc}
+          dict={dict}
+          moduleId="roadmap"
+          features={{ roadmapDefaults: items }}
+        />
       </div>
     </>
   );

@@ -6,6 +6,7 @@ import { EditableProjectGrid } from "@/components/EditableProjectGrid";
 import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
+import { RoadmapTimeline } from "@/components/RoadmapTimeline";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getThoughts } from "@/lib/content";
@@ -89,6 +90,12 @@ export default async function ThoughtsPage({
           locale={loc}
           dict={dict}
           moduleId="thoughts"
+          hideAdd
+        />
+        <RoadmapTimeline
+          locale={loc}
+          moduleId="thoughts"
+          dict={dict}
           hideAdd
         />
         <ModuleAddMenu

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
-import type { PostMeta, Project } from "@/lib/content";
+import type { PostMeta, Project, RoadmapItem } from "@/lib/content";
 import {
   contactLabelKey,
   contactValueKey,
@@ -32,6 +32,11 @@ import {
   projectFromContent,
   requestProjectEdit,
 } from "@/lib/project-edits";
+import {
+  createRoadmapItem,
+  loadRoadmapItems,
+  requestRoadmapEdit,
+} from "@/lib/roadmap-edits";
 
 export type ModuleAddFeatures = {
   /** Contact module only — adds “联系方式”. */
@@ -39,6 +44,7 @@ export type ModuleAddFeatures = {
   sectionDefaults?: ModuleSectionDef[];
   projectDefaults?: Project[];
   postDefaults?: PostMeta[];
+  roadmapDefaults?: RoadmapItem[];
 };
 
 interface ModuleAddMenuProps {
@@ -49,7 +55,7 @@ interface ModuleAddMenuProps {
 }
 
 type Panel = "root" | "section";
-type Choice = "section" | "project" | "post" | "contact";
+type Choice = "section" | "project" | "post" | "path" | "contact";
 
 export function ModuleAddMenu({
   locale,
@@ -65,6 +71,7 @@ export function ModuleAddMenu({
     "section",
     "project",
     "post",
+    "path",
     ...(features.contact ? (["contact"] as const) : []),
   ];
 
@@ -127,6 +134,23 @@ export function ModuleAddMenu({
     close();
   }
 
+  function addPath() {
+    const defaults = features.roadmapDefaults ?? [];
+    const current = loadRoadmapItems(moduleId, locale, defaults);
+    const { id } = createRoadmapItem(
+      moduleId,
+      locale,
+      current,
+      {
+        title: dict.roadmap.newStageTitle,
+        description: dict.roadmap.newStageBody,
+      },
+      defaults,
+    );
+    requestRoadmapEdit(moduleId, id);
+    close();
+  }
+
   async function addContact() {
     const current = loadContactLinks();
     const { id } = createContactLink(current);
@@ -151,6 +175,8 @@ export function ModuleAddMenu({
         return dict.projects.addProject;
       case "post":
         return dict.posts.addPost;
+      case "path":
+        return dict.roadmap.addPath;
       case "contact":
         return dict.contact.addLink;
     }
@@ -163,6 +189,7 @@ export function ModuleAddMenu({
     }
     if (kind === "project") addProject();
     else if (kind === "post") addPost();
+    else if (kind === "path") addPath();
     else if (kind === "contact") void addContact();
   }
 

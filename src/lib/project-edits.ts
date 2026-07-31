@@ -1,14 +1,29 @@
 import type { Locale } from "@/i18n/config";
 import type { Project } from "@/lib/content";
 import {
+  cloneCoreSlots,
+  normalizeCoreSlots,
+} from "@/lib/core-slots";
+import {
+  alignExtraFields,
+  cloneExtraFields,
+  normalizeExtraFields,
+  translateExtraFields,
+  type ExtraField,
+} from "@/lib/extra-fields";
+import {
   rememberTocPhrase,
   translateTocNote,
 } from "@/lib/translate-note";
 import { pushProjectToTrash } from "@/lib/trash";
+import { moveIndex } from "@/lib/reorder";
 
 const STORAGE_KEY = "knowledge-hub:project-items";
 export const PROJECT_ITEMS_EVENT = "knowledge-hub:project-items-updated";
 export const PROJECT_FOCUS_EDIT_EVENT = "knowledge-hub:project-focus-edit";
+
+export const PROJECT_CORE_SLOTS = ["title", "description", "link"] as const;
+export type ProjectCoreSlot = (typeof PROJECT_CORE_SLOTS)[number];
 
 export function requestProjectEdit(moduleId: string, slug: string) {
   if (typeof window === "undefined") return;
@@ -19,11 +34,8 @@ export function requestProjectEdit(moduleId: string, slug: string) {
   );
 }
 
-export type ProjectExtraField = {
-  id: string;
-  label: string;
-  value: string;
-};
+/** @deprecated use ExtraField */
+export type ProjectExtraField = ExtraField;
 
 export type EditableProject = {
   slug: string;
@@ -33,7 +45,9 @@ export type EditableProject = {
   /** Optional share link. */
   link?: string;
   /** Extra user-defined fields within the project. */
-  fields: ProjectExtraField[];
+  fields: ExtraField[];
+  /** Built-in title/description/link slots still shown. */
+  coreSlots: ProjectCoreSlot[];
   /** @deprecated kept for migration */
   tags?: string[];
   github?: string;
@@ -95,22 +109,6 @@ function writeStore(store: ProjectStore) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
-function normalizeFields(value: unknown): ProjectExtraField[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter(
-      (item): item is ProjectExtraField =>
-        Boolean(item) &&
-        typeof item === "object" &&
-        typeof (item as ProjectExtraField).id === "string",
-    )
-    .map((item) => ({
-      id: item.id,
-      label: typeof item.label === "string" ? item.label : "",
-      value: typeof item.value === "string" ? item.value : "",
-    }));
-}
-
 function normalizeItem(item: unknown): EditableProject | null {
   if (!item || typeof item !== "object") return null;
   const row = item as Partial<EditableProject> & {
@@ -132,7 +130,8 @@ function normalizeItem(item: unknown): EditableProject | null {
         ? row.date
         : new Date().toISOString().slice(0, 10),
     link: link || undefined,
-    fields: normalizeFields(row.fields),
+    fields: normalizeExtraFields(row.fields),
+    coreSlots: normalizeCoreSlots(row.coreSlots, PROJECT_CORE_SLOTS),
     featured: Boolean(row.featured),
   };
 }
@@ -144,7 +143,8 @@ function cloneItems(items: EditableProject[]): EditableProject[] {
     description: item.description,
     date: item.date,
     link: item.link,
-    fields: item.fields.map((field) => ({ ...field })),
+    fields: cloneExtraFields(item.fields),
+    coreSlots: cloneCoreSlots(item.coreSlots ?? [...PROJECT_CORE_SLOTS]),
     featured: item.featured,
   }));
 }
@@ -157,6 +157,7 @@ export function projectFromContent(project: Project): EditableProject {
     date: project.date,
     link: project.github || project.demo,
     fields: [],
+    coreSlots: [...PROJECT_CORE_SLOTS],
     featured: project.featured,
   };
 }
@@ -212,21 +213,17 @@ function alignPeerStructure(
     if (!prev) {
       return {
         ...item,
-        fields: item.fields.map((field) => ({ ...field })),
+        fields: cloneExtraFields(item.fields),
+        coreSlots: cloneCoreSlots(item.coreSlots ?? [...PROJECT_CORE_SLOTS]),
       };
     }
-    const prevFields = new Map(prev.fields.map((field) => [field.id, field]));
     return {
       ...prev,
       date: item.date,
       featured: item.featured,
       link: item.link,
-      fields: item.fields.map((field) => {
-        const old = prevFields.get(field.id);
-        return old
-          ? { id: field.id, label: old.label, value: old.value }
-          : { ...field };
-      }),
+      fields: alignExtraFields(item.fields, prev.fields),
+      coreSlots: cloneCoreSlots(item.coreSlots ?? [...PROJECT_CORE_SLOTS]),
     };
   });
 }
@@ -261,6 +258,7 @@ export function createProjectItem(
       date: new Date().toISOString().slice(0, 10),
       link: undefined,
       fields: [],
+      coreSlots: [...PROJECT_CORE_SLOTS],
       featured: false,
     },
   ];
@@ -291,6 +289,20 @@ export function removeProjectItem(
     });
   }
   const items = current.filter((item) => item.slug !== slug);
+  saveWithPeerStructure(moduleId, locale, items, peerFallback);
+  return items;
+}
+
+export function reorderProjectItems(
+  moduleId: string,
+  locale: Locale,
+  current: EditableProject[],
+  from: number,
+  to: number,
+  peerFallback: EditableProject[] = current,
+): EditableProject[] {
+  const items = moveIndex(current, from, to);
+  if (items === current) return current;
   saveWithPeerStructure(moduleId, locale, items, peerFallback);
   return items;
 }
@@ -338,8 +350,11 @@ export function updateProjectItem(
           ...item,
           ...patch,
           fields: patch.fields
-            ? patch.fields.map((field) => ({ ...field }))
-            : item.fields.map((field) => ({ ...field })),
+            ? cloneExtraFields(patch.fields)
+            : cloneExtraFields(item.fields),
+          coreSlots: patch.coreSlots
+            ? cloneCoreSlots(patch.coreSlots)
+            : cloneCoreSlots(item.coreSlots ?? [...PROJECT_CORE_SLOTS]),
         }
       : item,
   );
@@ -375,20 +390,11 @@ async function syncPeerText(
   const translatedDescription = source.description.trim()
     ? await translateTocNote(source.description, locale, peer)
     : "";
-
-  const translatedFields: ProjectExtraField[] = [];
-  for (const field of source.fields) {
-    const label = field.label.trim()
-      ? await translateTocNote(field.label, locale, peer)
-      : "";
-    const value = field.value.trim()
-      ? await translateTocNote(field.value, locale, peer)
-      : "";
-    if (field.label.trim() && label) {
-      rememberTocPhrase(field.label, label, locale);
-    }
-    translatedFields.push({ id: field.id, label, value });
-  }
+  const translatedFields = await translateExtraFields(
+    source.fields,
+    locale,
+    peer,
+  );
 
   if (source.title.trim() && translatedTitle) {
     rememberTocPhrase(source.title, translatedTitle, locale);
@@ -405,6 +411,9 @@ async function syncPeerText(
           description: translatedDescription,
           link: source.link,
           fields: translatedFields,
+          coreSlots: cloneCoreSlots(
+            source.coreSlots ?? [...PROJECT_CORE_SLOTS],
+          ),
           date: source.date,
           featured: source.featured,
         }

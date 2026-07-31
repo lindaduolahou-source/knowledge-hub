@@ -74,7 +74,7 @@ export const zh = {
     kindSection: "小节",
     kindProject: "项目",
     kindPost: "文章",
-    kindRoadmap: "学习阶段",
+    kindRoadmap: "路径",
     kindContact: "联系方式",
     kindItem: "内容",
   },
@@ -132,6 +132,7 @@ export const zh = {
     },
     statusLabel: "阶段状态",
     addStage: "添加阶段",
+    addPath: "添加路径",
     removeStage: "移除阶段",
     removeStageConfirm: "确定移除此学习阶段？可在回收站恢复。",
     newStageTitle: "新阶段",
@@ -159,13 +160,6 @@ export const zh = {
     titlePlaceholder: "项目名称",
     bodyPlaceholder: "项目说明",
     linkPlaceholder: "分享链接（可选）",
-    addField: "添加栏目",
-    removeField: "移除栏目",
-    removeFieldConfirm: "确定移除此栏目？",
-    newFieldLabel: "新栏目",
-    newFieldValue: "填写内容…",
-    fieldLabelPlaceholder: "栏目标题",
-    fieldValuePlaceholder: "栏目内容",
     tagsPlaceholder: "技术栈（用逗号分隔）",
     githubPlaceholder: "GitHub 链接（可选）",
     demoPlaceholder: "演示链接（可选）",
@@ -206,6 +200,16 @@ export const zh = {
     confirm: "确定",
     cancel: "取消",
     done: "完成",
+    moveUp: "上移",
+    moveDown: "下移",
+    reorder: "拖动调整顺序",
+    addField: "添加栏目",
+    removeField: "移除栏目",
+    removeFieldConfirm: "确定移除此栏目？",
+    newFieldLabel: "新栏目",
+    newFieldValue: "填写内容…",
+    fieldLabelPlaceholder: "栏目标题",
+    fieldValuePlaceholder: "栏目内容",
   },
   shareCard: {
     open: "制作名片",
@@ -369,6 +373,7 @@ export type Dictionary = {
     status: Record<"completed" | "inProgress" | "planned", string>;
     statusLabel: string;
     addStage: string;
+    addPath: string;
     removeStage: string;
     removeStageConfirm: string;
     newStageTitle: string;
@@ -396,13 +401,6 @@ export type Dictionary = {
     titlePlaceholder: string;
     bodyPlaceholder: string;
     linkPlaceholder: string;
-    addField: string;
-    removeField: string;
-    removeFieldConfirm: string;
-    newFieldLabel: string;
-    newFieldValue: string;
-    fieldLabelPlaceholder: string;
-    fieldValuePlaceholder: string;
     tagsPlaceholder: string;
     githubPlaceholder: string;
     demoPlaceholder: string;
@@ -426,7 +424,22 @@ export type Dictionary = {
     labelPlaceholder: string;
     valuePlaceholder: string;
   };
-  common: { backToExplore: string; confirm: string; cancel: string; done: string };
+  common: {
+    backToExplore: string;
+    confirm: string;
+    cancel: string;
+    done: string;
+    moveUp: string;
+    moveDown: string;
+    reorder: string;
+    addField: string;
+    removeField: string;
+    removeFieldConfirm: string;
+    newFieldLabel: string;
+    newFieldValue: string;
+    fieldLabelPlaceholder: string;
+    fieldValuePlaceholder: string;
+  };
   posts: {
     addPost: string;
     removePost: string;

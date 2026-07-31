@@ -4,26 +4,52 @@ import { useEffect, useState } from "react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { RoadmapItem } from "@/lib/content";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   createRoadmapItem,
   loadRoadmapItems,
   removeRoadmapItem,
+  reorderRoadmapItems,
+  ROADMAP_CORE_SLOTS,
   ROADMAP_FOCUS_EDIT_EVENT,
   ROADMAP_ITEMS_EVENT,
   updateRoadmapItem,
+  type RoadmapCoreSlot,
 } from "@/lib/roadmap-edits";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import {
+  ExtraFieldsEditor,
+  ExtraFieldsView,
+} from "@/components/ExtraFieldsEditor";
+import { RemovableSlot } from "@/components/RemovableSlot";
+import { DragHandle, SortableItem, SortableList } from "@/components/SortableReorder";
+import {
+  cloneCoreSlots,
+  removeCoreSlot,
+  restoreCoreSlotOrAddCustom,
+} from "@/lib/core-slots";
+import { cloneExtraFields, createExtraFieldId } from "@/lib/extra-fields";
 
 interface RoadmapTimelineProps {
   locale: Locale;
-  items: RoadmapItem[];
+  moduleId: string;
+  items?: RoadmapItem[];
   dict: Dictionary;
   hideAdd?: boolean;
 }
 
+function draftFromItem(item: RoadmapItem): RoadmapItem {
+  return {
+    ...item,
+    topics: [...item.topics],
+    fields: cloneExtraFields(item.fields ?? []),
+    coreSlots: cloneCoreSlots(item.coreSlots ?? [...ROADMAP_CORE_SLOTS]),
+  };
+}
+
 export function RoadmapTimeline({
   locale,
-  items: defaults,
+  moduleId,
+  items: defaults = [],
   dict,
   hideAdd = false,
 }: RoadmapTimelineProps) {
@@ -32,28 +58,34 @@ export function RoadmapTimeline({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<RoadmapItem | null>(null);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const [pendingRemoveFieldId, setPendingRemoveFieldId] = useState<
+    string | null
+  >(null);
+  const [pendingRemoveCoreSlot, setPendingRemoveCoreSlot] =
+    useState<RoadmapCoreSlot | null>(null);
 
   useEffect(() => {
     function refresh() {
-      setItems(loadRoadmapItems(locale, defaults));
+      setItems(loadRoadmapItems(moduleId, locale, defaults));
       setReady(true);
     }
     refresh();
-    function onUpdate() {
+    function onUpdate(event: Event) {
+      const detail = (event as CustomEvent<{ moduleId?: string }>).detail;
+      if (detail?.moduleId && detail.moduleId !== moduleId) return;
       refresh();
     }
     function onFocusEdit(event: Event) {
-      const detail = (event as CustomEvent<{ id?: string }>).detail;
-      if (!detail?.id) return;
-      const next = loadRoadmapItems(locale, defaults);
+      const detail = (
+        event as CustomEvent<{ moduleId?: string; id?: string }>
+      ).detail;
+      if (detail?.moduleId !== moduleId || !detail.id) return;
+      const next = loadRoadmapItems(moduleId, locale, defaults);
       setItems(next);
       const created = next.find((item) => item.id === detail.id);
       if (created) {
         setEditingId(created.id);
-        setDraft({
-          ...created,
-          topics: [...created.topics],
-        });
+        setDraft(draftFromItem(created));
       }
     }
     window.addEventListener(ROADMAP_ITEMS_EVENT, onUpdate);
@@ -65,22 +97,25 @@ export function RoadmapTimeline({
       window.removeEventListener("storage", onUpdate);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  }, [locale, moduleId]);
 
   function startEdit(item: RoadmapItem) {
     setEditingId(item.id);
-    setDraft({ ...item, topics: [...item.topics] });
+    setDraft(draftFromItem(item));
   }
 
   function cancelEdit() {
     setEditingId(null);
     setDraft(null);
+    setPendingRemoveFieldId(null);
+    setPendingRemoveCoreSlot(null);
   }
 
   function commitEdit() {
     if (!editingId || !draft) return;
     setItems(
       updateRoadmapItem(
+        moduleId,
         locale,
         items,
         editingId,
@@ -89,6 +124,10 @@ export function RoadmapTimeline({
           description: draft.description,
           status: draft.status,
           topics: draft.topics,
+          fields: cloneExtraFields(draft.fields ?? []),
+          coreSlots: cloneCoreSlots(
+            draft.coreSlots ?? [...ROADMAP_CORE_SLOTS],
+          ),
         },
         defaults,
       ),
@@ -100,12 +139,21 @@ export function RoadmapTimeline({
   function confirmRemove() {
     if (!pendingRemoveId) return;
     if (editingId === pendingRemoveId) cancelEdit();
-    setItems(removeRoadmapItem(locale, items, pendingRemoveId, defaults));
+    setItems(
+      removeRoadmapItem(
+        moduleId,
+        locale,
+        items,
+        pendingRemoveId,
+        defaults,
+      ),
+    );
     setPendingRemoveId(null);
   }
 
   function handleAdd() {
     const { items: next, id } = createRoadmapItem(
+      moduleId,
       locale,
       items,
       {
@@ -117,6 +165,58 @@ export function RoadmapTimeline({
     setItems(next);
     const created = next.find((item) => item.id === id);
     if (created) startEdit(created);
+  }
+
+  function handleReorder(from: number, to: number) {
+    setItems(
+      reorderRoadmapItems(moduleId, locale, items, from, to, defaults),
+    );
+  }
+
+  function confirmRemoveField() {
+    if (!draft || !pendingRemoveFieldId) return;
+    setDraft({
+      ...draft,
+      fields: (draft.fields ?? []).filter(
+        (field) => field.id !== pendingRemoveFieldId,
+      ),
+    });
+    setPendingRemoveFieldId(null);
+  }
+
+  function confirmRemoveCoreSlot() {
+    if (!draft || !pendingRemoveCoreSlot) return;
+    setDraft({
+      ...draft,
+      coreSlots: removeCoreSlot(
+        draft.coreSlots ?? [...ROADMAP_CORE_SLOTS],
+        pendingRemoveCoreSlot,
+      ),
+    });
+    setPendingRemoveCoreSlot(null);
+  }
+
+  function handleAddField() {
+    if (!draft) return;
+    const core = draft.coreSlots ?? [...ROADMAP_CORE_SLOTS];
+    const restored = restoreCoreSlotOrAddCustom(
+      core,
+      ROADMAP_CORE_SLOTS,
+      () => {
+        setDraft({
+          ...draft,
+          fields: [
+            ...(draft.fields ?? []),
+            {
+              id: createExtraFieldId(),
+              label: dict.common.newFieldLabel,
+              value: dict.common.newFieldValue,
+            },
+          ],
+        });
+      },
+    );
+    if (restored) setDraft({ ...draft, coreSlots: restored });
   }
 
   if (!ready) {
@@ -131,13 +231,18 @@ export function RoadmapTimeline({
   return (
     <div className="relative space-y-0">
       <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
-      {items.map((item, i) => {
-        const editing = editingId === item.id && draft;
-        return (
-          <div
-            key={item.id}
-            className="group/item relative flex gap-6 pb-10 last:pb-0"
-          >
+      <SortableList count={items.length} onReorder={handleReorder}>
+        {items.map((item, i) => {
+          const editing = editingId === item.id && draft;
+          const core = editing
+            ? (draft.coreSlots ?? [...ROADMAP_CORE_SLOTS])
+            : (item.coreSlots ?? [...ROADMAP_CORE_SLOTS]);
+          return (
+            <SortableItem
+              key={item.id}
+              index={i}
+              className="group/item relative flex gap-6 pb-10 last:pb-0"
+            >
             <div className="relative z-10 mt-1.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border border-border bg-background">
               <div
                 className={`h-2 w-2 rounded-full ${
@@ -154,12 +259,13 @@ export function RoadmapTimeline({
                 <span className="font-mono text-xs text-muted/60">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                {!editing && (
+                {!editing && core.includes("status") && (
                   <span className="rounded border border-white/25 bg-black px-2 py-0.5 font-mono text-xs text-white">
                     {dict.roadmap.status[item.status]}
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-1">
+                  <DragHandle index={i} label={dict.common.reorder} />
                   {editing ? (
                     <>
                       <button
@@ -201,57 +307,96 @@ export function RoadmapTimeline({
 
               {editing ? (
                 <div className="space-y-3">
-                  <select
-                    value={draft.status}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        status: event.target.value as RoadmapItem["status"],
-                      })
-                    }
-                    className="cursor-pointer rounded border border-white/25 bg-black px-2 py-0.5 font-mono text-xs text-white outline-none [color-scheme:dark]"
-                    aria-label={dict.roadmap.statusLabel}
-                  >
-                    <option value="completed">
-                      {dict.roadmap.status.completed}
-                    </option>
-                    <option value="inProgress">
-                      {dict.roadmap.status.inProgress}
-                    </option>
-                    <option value="planned">
-                      {dict.roadmap.status.planned}
-                    </option>
-                  </select>
-                  <input
-                    value={draft.title}
-                    onChange={(event) =>
-                      setDraft({ ...draft, title: event.target.value })
-                    }
-                    placeholder={dict.roadmap.stageTitlePlaceholder}
-                    className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-base font-medium text-foreground outline-none placeholder:text-muted/40 focus:border-white/40"
-                  />
-                  <textarea
-                    value={draft.description}
-                    onChange={(event) =>
-                      setDraft({ ...draft, description: event.target.value })
-                    }
-                    rows={3}
-                    placeholder={dict.roadmap.stageBodyPlaceholder}
-                    className="w-full resize-y rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm leading-relaxed text-muted outline-none placeholder:text-muted/40 focus:border-white/40"
-                  />
-                  <input
-                    value={draft.topics.join(", ")}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        topics: event.target.value
-                          .split(/[,，]/)
-                          .map((topic) => topic.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    placeholder={dict.roadmap.topicsPlaceholder}
-                    className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 font-mono text-xs text-accent/80 outline-none placeholder:text-accent/35 focus:border-white/40"
+                  {core.includes("status") && (
+                    <RemovableSlot
+                      removeLabel={dict.common.removeField}
+                      onRemove={() => setPendingRemoveCoreSlot("status")}
+                    >
+                      <select
+                        value={draft.status}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            status: event.target
+                              .value as RoadmapItem["status"],
+                          })
+                        }
+                        className="cursor-pointer rounded border border-white/25 bg-black px-2 py-0.5 font-mono text-xs text-white outline-none [color-scheme:dark]"
+                        aria-label={dict.roadmap.statusLabel}
+                      >
+                        <option value="completed">
+                          {dict.roadmap.status.completed}
+                        </option>
+                        <option value="inProgress">
+                          {dict.roadmap.status.inProgress}
+                        </option>
+                        <option value="planned">
+                          {dict.roadmap.status.planned}
+                        </option>
+                      </select>
+                    </RemovableSlot>
+                  )}
+                  {core.includes("title") && (
+                    <RemovableSlot
+                      removeLabel={dict.common.removeField}
+                      onRemove={() => setPendingRemoveCoreSlot("title")}
+                    >
+                      <input
+                        value={draft.title}
+                        onChange={(event) =>
+                          setDraft({ ...draft, title: event.target.value })
+                        }
+                        placeholder={dict.roadmap.stageTitlePlaceholder}
+                        className="w-full bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted/40"
+                      />
+                    </RemovableSlot>
+                  )}
+                  {core.includes("description") && (
+                    <RemovableSlot
+                      removeLabel={dict.common.removeField}
+                      onRemove={() => setPendingRemoveCoreSlot("description")}
+                    >
+                      <textarea
+                        value={draft.description}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            description: event.target.value,
+                          })
+                        }
+                        rows={3}
+                        placeholder={dict.roadmap.stageBodyPlaceholder}
+                        className="w-full resize-y bg-transparent text-sm leading-relaxed text-muted outline-none placeholder:text-muted/40"
+                      />
+                    </RemovableSlot>
+                  )}
+                  {core.includes("topics") && (
+                    <RemovableSlot
+                      removeLabel={dict.common.removeField}
+                      onRemove={() => setPendingRemoveCoreSlot("topics")}
+                    >
+                      <input
+                        value={draft.topics.join(", ")}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            topics: event.target.value
+                              .split(/[,，]/)
+                              .map((topic) => topic.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        placeholder={dict.roadmap.topicsPlaceholder}
+                        className="w-full bg-transparent font-mono text-xs text-accent/80 outline-none placeholder:text-accent/35"
+                      />
+                    </RemovableSlot>
+                  )}
+                  <ExtraFieldsEditor
+                    fields={draft.fields ?? []}
+                    copy={dict.common}
+                    onChange={(fields) => setDraft({ ...draft, fields })}
+                    onRequestRemove={setPendingRemoveFieldId}
+                    onAddClick={handleAddField}
                   />
                   <p className="text-[11px] text-muted/70">
                     {dict.home.pageSaveHint}
@@ -259,13 +404,17 @@ export function RoadmapTimeline({
                 </div>
               ) : (
                 <>
-                  <h3 className="mb-2 text-base font-medium text-foreground">
-                    {item.title || dict.roadmap.stageTitlePlaceholder}
-                  </h3>
-                  <p className="mb-3 text-sm leading-relaxed text-muted">
-                    {item.description || dict.roadmap.stageBodyPlaceholder}
-                  </p>
-                  {item.topics.length > 0 && (
+                  {core.includes("title") && (
+                    <h3 className="mb-2 text-base font-medium text-foreground">
+                      {item.title || dict.roadmap.stageTitlePlaceholder}
+                    </h3>
+                  )}
+                  {core.includes("description") && (
+                    <p className="mb-3 text-sm leading-relaxed text-muted">
+                      {item.description || dict.roadmap.stageBodyPlaceholder}
+                    </p>
+                  )}
+                  {core.includes("topics") && item.topics.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {item.topics.map((topic) => (
                         <span
@@ -277,12 +426,17 @@ export function RoadmapTimeline({
                       ))}
                     </div>
                   )}
+                  <ExtraFieldsView
+                    fields={item.fields ?? []}
+                    copy={dict.common}
+                  />
                 </>
               )}
             </div>
-          </div>
-        );
-      })}
+            </SortableItem>
+          );
+        })}
+      </SortableList>
 
       {!hideAdd && (
         <div className="relative flex gap-6 pt-2">
@@ -293,7 +447,7 @@ export function RoadmapTimeline({
             className="w-full cursor-pointer rounded-xl border border-dashed border-white/20 px-4 py-3 text-left text-sm text-white/45 transition-colors hover:border-white/35 hover:text-white/80"
           >
             <span className="mr-2 text-base text-white/50">+</span>
-            {dict.roadmap.addStage}
+            {dict.roadmap.addPath}
           </button>
         </div>
       )}
@@ -305,6 +459,22 @@ export function RoadmapTimeline({
         cancelLabel={dict.common.cancel}
         onConfirm={confirmRemove}
         onCancel={() => setPendingRemoveId(null)}
+      />
+      <ConfirmDialog
+        open={pendingRemoveFieldId !== null}
+        message={dict.common.removeFieldConfirm}
+        confirmLabel={dict.common.confirm}
+        cancelLabel={dict.common.cancel}
+        onConfirm={confirmRemoveField}
+        onCancel={() => setPendingRemoveFieldId(null)}
+      />
+      <ConfirmDialog
+        open={pendingRemoveCoreSlot !== null}
+        message={dict.common.removeFieldConfirm}
+        confirmLabel={dict.common.confirm}
+        cancelLabel={dict.common.cancel}
+        onConfirm={confirmRemoveCoreSlot}
+        onCancel={() => setPendingRemoveCoreSlot(null)}
       />
     </div>
   );

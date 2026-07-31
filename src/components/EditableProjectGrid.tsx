@@ -6,16 +6,30 @@ import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { Project } from "@/lib/content";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
+  ExtraFieldsEditor,
+  ExtraFieldsView,
+} from "@/components/ExtraFieldsEditor";
+import { RemovableSlot } from "@/components/RemovableSlot";
+import { DragHandle, SortableItem, SortableList } from "@/components/SortableReorder";
+import {
   createProjectItem,
   loadProjectItems,
+  PROJECT_CORE_SLOTS,
   PROJECT_FOCUS_EDIT_EVENT,
   PROJECT_ITEMS_EVENT,
   projectFromContent,
   removeProjectItem,
+  reorderProjectItems,
   updateProjectItem,
   type EditableProject,
-  type ProjectExtraField,
+  type ProjectCoreSlot,
 } from "@/lib/project-edits";
+import {
+  cloneCoreSlots,
+  removeCoreSlot,
+  restoreCoreSlotOrAddCustom,
+} from "@/lib/core-slots";
+import { cloneExtraFields, createExtraFieldId } from "@/lib/extra-fields";
 
 interface EditableProjectGridProps {
   locale: Locale;
@@ -36,6 +50,15 @@ function hrefFor(link: string) {
     : `https://${link}`;
 }
 
+function draftFromItem(item: EditableProject): EditableProject {
+  return {
+    ...item,
+    link: projectLink(item),
+    fields: cloneExtraFields(item.fields),
+    coreSlots: cloneCoreSlots(item.coreSlots ?? [...PROJECT_CORE_SLOTS]),
+  };
+}
+
 export function EditableProjectGrid({
   locale,
   dict,
@@ -54,6 +77,8 @@ export function EditableProjectGrid({
   const [pendingRemoveFieldId, setPendingRemoveFieldId] = useState<
     string | null
   >(null);
+  const [pendingRemoveCoreSlot, setPendingRemoveCoreSlot] =
+    useState<ProjectCoreSlot | null>(null);
 
   useEffect(() => {
     function refresh() {
@@ -76,11 +101,7 @@ export function EditableProjectGrid({
       const created = next.find((item) => item.slug === detail.slug);
       if (created) {
         setEditingSlug(created.slug);
-        setDraft({
-          ...created,
-          link: projectLink(created),
-          fields: created.fields.map((field) => ({ ...field })),
-        });
+        setDraft(draftFromItem(created));
       }
     }
     window.addEventListener(PROJECT_ITEMS_EVENT, onUpdate);
@@ -96,17 +117,14 @@ export function EditableProjectGrid({
 
   function startEdit(item: EditableProject) {
     setEditingSlug(item.slug);
-    setDraft({
-      ...item,
-      link: projectLink(item),
-      fields: item.fields.map((field) => ({ ...field })),
-    });
+    setDraft(draftFromItem(item));
   }
 
   function cancelEdit() {
     setEditingSlug(null);
     setDraft(null);
     setPendingRemoveFieldId(null);
+    setPendingRemoveCoreSlot(null);
   }
 
   function commitEdit() {
@@ -121,7 +139,8 @@ export function EditableProjectGrid({
           title: draft.title,
           description: draft.description,
           link: draft.link?.trim() || undefined,
-          fields: draft.fields.map((field) => ({ ...field })),
+          fields: cloneExtraFields(draft.fields),
+          coreSlots: cloneCoreSlots(draft.coreSlots),
         },
         defaults,
       ),
@@ -161,29 +180,6 @@ export function EditableProjectGrid({
     if (created) startEdit(created);
   }
 
-  function addField() {
-    if (!draft) return;
-    const field: ProjectExtraField = {
-      id: `field-${Date.now().toString(36)}`,
-      label: dict.projects.newFieldLabel,
-      value: dict.projects.newFieldValue,
-    };
-    setDraft({ ...draft, fields: [...draft.fields, field] });
-  }
-
-  function patchField(
-    fieldId: string,
-    patch: Partial<Pick<ProjectExtraField, "label" | "value">>,
-  ) {
-    if (!draft) return;
-    setDraft({
-      ...draft,
-      fields: draft.fields.map((field) =>
-        field.id === fieldId ? { ...field, ...patch } : field,
-      ),
-    });
-  }
-
   function confirmRemoveField() {
     if (!draft || !pendingRemoveFieldId) return;
     setDraft({
@@ -191,6 +187,43 @@ export function EditableProjectGrid({
       fields: draft.fields.filter((field) => field.id !== pendingRemoveFieldId),
     });
     setPendingRemoveFieldId(null);
+  }
+
+  function confirmRemoveCoreSlot() {
+    if (!draft || !pendingRemoveCoreSlot) return;
+    setDraft({
+      ...draft,
+      coreSlots: removeCoreSlot(draft.coreSlots, pendingRemoveCoreSlot),
+    });
+    setPendingRemoveCoreSlot(null);
+  }
+
+  function handleAddField() {
+    if (!draft) return;
+    const restored = restoreCoreSlotOrAddCustom(
+      draft.coreSlots,
+      PROJECT_CORE_SLOTS,
+      () => {
+        setDraft({
+          ...draft,
+          fields: [
+            ...draft.fields,
+            {
+              id: createExtraFieldId(),
+              label: dict.common.newFieldLabel,
+              value: dict.common.newFieldValue,
+            },
+          ],
+        });
+      },
+    );
+    if (restored) setDraft({ ...draft, coreSlots: restored });
+  }
+
+  function handleReorder(from: number, to: number) {
+    setItems(
+      reorderProjectItems(moduleId, locale, items, from, to, defaults),
+    );
   }
 
   if (!ready) {
@@ -204,23 +237,31 @@ export function EditableProjectGrid({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        {items.map((project) => {
-          const editing = editingSlug === project.slug && draft;
-          const link = projectLink(project);
-          return (
-            <article
-              key={project.slug}
-              className="group/item rounded-lg border border-border bg-surface/50 p-5 transition-colors hover:border-accent/20"
-            >
+      <SortableList count={items.length} onReorder={handleReorder}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {items.map((project, index) => {
+            const editing = editingSlug === project.slug && draft;
+            const link = projectLink(project);
+            const core = editing
+              ? draft.coreSlots
+              : (project.coreSlots ?? [...PROJECT_CORE_SLOTS]);
+            return (
+              <SortableItem
+                key={project.slug}
+                index={index}
+                className="group/item rounded-lg border border-border bg-surface/50 p-5 transition-colors hover:border-accent/20"
+              >
               <div className="mb-3 flex items-start gap-2">
-                {!editing && (
+                {!editing && core.includes("title") && (
                   <h3 className="min-w-0 flex-1 text-lg font-medium tracking-tight text-foreground">
                     {project.title || dict.projects.titlePlaceholder}
                   </h3>
                 )}
-                {editing && <div className="min-w-0 flex-1" />}
+                {(editing || !core.includes("title")) && (
+                  <div className="min-w-0 flex-1" />
+                )}
                 <div className="flex shrink-0 items-center gap-1">
+                  <DragHandle index={index} label={dict.common.reorder} />
                   {editing ? (
                     <>
                       <button
@@ -262,84 +303,66 @@ export function EditableProjectGrid({
 
               {editing ? (
                 <div className="space-y-3">
-                  <input
-                    value={draft.title}
-                    onChange={(event) =>
-                      setDraft({ ...draft, title: event.target.value })
-                    }
-                    placeholder={dict.projects.titlePlaceholder}
-                    className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-lg font-medium text-foreground outline-none placeholder:text-muted/40 focus:border-white/40"
-                  />
-                  <textarea
-                    value={draft.description}
-                    onChange={(event) =>
-                      setDraft({ ...draft, description: event.target.value })
-                    }
-                    rows={3}
-                    placeholder={dict.projects.bodyPlaceholder}
-                    className="w-full resize-y rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm leading-relaxed text-muted outline-none placeholder:text-muted/40 focus:border-white/40"
-                  />
-                  <input
-                    value={draft.link ?? ""}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        link: event.target.value.trim() || undefined,
-                      })
-                    }
-                    placeholder={dict.projects.linkPlaceholder}
-                    className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 font-mono text-xs text-muted outline-none placeholder:text-muted/35 focus:border-white/40"
-                  />
-
-                  <div className="space-y-2 border-t border-white/10 pt-3">
-                    {draft.fields.map((field) => (
-                      <div
-                        key={field.id}
-                        className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
-                      >
-                        <div className="mb-2 flex items-center gap-2">
-                          <input
-                            value={field.label}
-                            onChange={(event) =>
-                              patchField(field.id, {
-                                label: event.target.value,
-                              })
-                            }
-                            placeholder={dict.projects.fieldLabelPlaceholder}
-                            className="min-w-0 flex-1 bg-transparent text-xs text-muted outline-none placeholder:text-muted/40"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setPendingRemoveFieldId(field.id)}
-                            className="cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
-                            aria-label={dict.projects.removeField}
-                            title={dict.projects.removeField}
-                          >
-                            ×
-                          </button>
-                        </div>
-                        <textarea
-                          value={field.value}
-                          onChange={(event) =>
-                            patchField(field.id, {
-                              value: event.target.value,
-                            })
-                          }
-                          rows={2}
-                          placeholder={dict.projects.fieldValuePlaceholder}
-                          className="w-full resize-y bg-transparent text-sm text-foreground outline-none placeholder:text-muted/40"
-                        />
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addField}
-                      className="w-full cursor-pointer rounded-lg border border-dashed border-white/20 px-3 py-2 text-left text-xs text-white/45 transition-colors hover:border-white/35 hover:text-white/80"
+                  {core.includes("title") && (
+                    <RemovableSlot
+                      removeLabel={dict.common.removeField}
+                      onRemove={() => setPendingRemoveCoreSlot("title")}
                     >
-                      <span className="mr-1.5 text-sm text-white/50">+</span>
-                      {dict.projects.addField}
-                    </button>
-                  </div>
+                      <input
+                        value={draft.title}
+                        onChange={(event) =>
+                          setDraft({ ...draft, title: event.target.value })
+                        }
+                        placeholder={dict.projects.titlePlaceholder}
+                        className="w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-muted/40"
+                      />
+                    </RemovableSlot>
+                  )}
+                  {core.includes("description") && (
+                    <RemovableSlot
+                      removeLabel={dict.common.removeField}
+                      onRemove={() => setPendingRemoveCoreSlot("description")}
+                    >
+                      <textarea
+                        value={draft.description}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            description: event.target.value,
+                          })
+                        }
+                        rows={3}
+                        placeholder={dict.projects.bodyPlaceholder}
+                        className="w-full resize-y bg-transparent text-sm leading-relaxed text-muted outline-none placeholder:text-muted/40"
+                      />
+                    </RemovableSlot>
+                  )}
+                  {core.includes("link") && (
+                    <RemovableSlot
+                      removeLabel={dict.common.removeField}
+                      onRemove={() => setPendingRemoveCoreSlot("link")}
+                    >
+                      <input
+                        value={draft.link ?? ""}
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            link: event.target.value.trim() || undefined,
+                          })
+                        }
+                        placeholder={dict.projects.linkPlaceholder}
+                        className="w-full bg-transparent font-mono text-xs text-muted outline-none placeholder:text-muted/35"
+                      />
+                    </RemovableSlot>
+                  )}
+
+                  <ExtraFieldsEditor
+                    fields={draft.fields}
+                    copy={dict.common}
+                    onChange={(fields) => setDraft({ ...draft, fields })}
+                    onRequestRemove={setPendingRemoveFieldId}
+                    onAddClick={handleAddField}
+                  />
 
                   <p className="text-[11px] text-muted/70">
                     {dict.home.pageSaveHint}
@@ -347,10 +370,12 @@ export function EditableProjectGrid({
                 </div>
               ) : (
                 <>
-                  <p className="mb-4 text-sm leading-relaxed text-muted">
-                    {project.description || dict.projects.bodyPlaceholder}
-                  </p>
-                  {link && (
+                  {core.includes("description") && (
+                    <p className="mb-4 text-sm leading-relaxed text-muted">
+                      {project.description || dict.projects.bodyPlaceholder}
+                    </p>
+                  )}
+                  {core.includes("link") && link && (
                     <a
                       href={hrefFor(link)}
                       target="_blank"
@@ -360,26 +385,14 @@ export function EditableProjectGrid({
                       {link}
                     </a>
                   )}
-                  {project.fields.length > 0 && (
-                    <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
-                      {project.fields.map((field) => (
-                        <div key={field.id}>
-                          <p className="mb-0.5 text-xs text-muted">
-                            {field.label || dict.projects.fieldLabelPlaceholder}
-                          </p>
-                          <p className="whitespace-pre-wrap text-sm text-foreground/85">
-                            {field.value || dict.projects.fieldValuePlaceholder}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <ExtraFieldsView fields={project.fields} copy={dict.common} />
                 </>
               )}
-            </article>
-          );
-        })}
-      </div>
+              </SortableItem>
+            );
+          })}
+        </div>
+      </SortableList>
 
       {!hideAdd && (
         <button
@@ -402,11 +415,19 @@ export function EditableProjectGrid({
       />
       <ConfirmDialog
         open={pendingRemoveFieldId !== null}
-        message={dict.projects.removeFieldConfirm}
+        message={dict.common.removeFieldConfirm}
         confirmLabel={dict.common.confirm}
         cancelLabel={dict.common.cancel}
         onConfirm={confirmRemoveField}
         onCancel={() => setPendingRemoveFieldId(null)}
+      />
+      <ConfirmDialog
+        open={pendingRemoveCoreSlot !== null}
+        message={dict.common.removeFieldConfirm}
+        confirmLabel={dict.common.confirm}
+        cancelLabel={dict.common.cancel}
+        onConfirm={confirmRemoveCoreSlot}
+        onCancel={() => setPendingRemoveCoreSlot(null)}
       />
     </div>
   );

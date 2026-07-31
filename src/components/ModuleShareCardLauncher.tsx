@@ -42,10 +42,14 @@ export function ModuleShareCardLauncher({
   immersive = false,
   floating = false,
 }: ModuleShareCardLauncherProps) {
-  const defaultLayout = sectionDefaults.map(({ id, variant }) => ({
-    id,
-    variant,
-  }));
+  const defaultLayout = sectionDefaults.map(
+    ({ id, variant, fields, coreSlots }) => ({
+      id,
+      variant,
+      fields: fields ?? [],
+      coreSlots: coreSlots ?? ["title", "body"],
+    }),
+  );
   const defaultsById = Object.fromEntries(
     sectionDefaults.map((item) => [item.id, item]),
   ) as Record<string, ModuleSectionDefault>;

@@ -29,7 +29,7 @@ export function restoreTrashContent(item: TrashItem): boolean {
     case "post":
       return restorePostItem(item.collection, item.snapshot);
     case "roadmap":
-      return restoreRoadmapItem(item.snapshot);
+      return restoreRoadmapItem(item.moduleId, item.snapshot);
     case "contact":
       return restoreContactLink(item.link, item.texts);
     case "module":
@@ -48,7 +48,11 @@ export function permanentlyPurgeTrashItem(item: TrashItem) {
       }
       break;
     case "section":
-      purgeModuleSectionContent(item.moduleId, item.section.id);
+      purgeModuleSectionContent(
+        item.moduleId,
+        item.section.id,
+        item.section.fields ?? [],
+      );
       break;
     case "contact":
       purgeContactLinkContentKeys(item.link);

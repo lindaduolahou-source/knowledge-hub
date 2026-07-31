@@ -6,6 +6,7 @@ import { EditableProjectGrid } from "@/components/EditableProjectGrid";
 import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
+import { RoadmapTimeline } from "@/components/RoadmapTimeline";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getModule } from "@/lib/modules";
@@ -88,6 +89,12 @@ export default async function ContactPage({
           posts={[]}
           hrefPrefix={postHrefPrefixForModule("contact")}
           readMore={dict.blog.readMore}
+          hideAdd
+        />
+        <RoadmapTimeline
+          locale={loc}
+          moduleId="contact"
+          dict={dict}
           hideAdd
         />
         <ModuleAddMenu

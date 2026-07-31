@@ -6,6 +6,7 @@ import { EditableProjectGrid } from "@/components/EditableProjectGrid";
 import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
+import { RoadmapTimeline } from "@/components/RoadmapTimeline";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getProjects } from "@/lib/content";
@@ -90,6 +91,7 @@ export default async function ProjectsPage({
           readMore={dict.blog.readMore}
           hideAdd
         />
+        <RoadmapTimeline locale={loc} moduleId="lab" dict={dict} hideAdd />
         <ModuleAddMenu
           locale={loc}
           dict={dict}

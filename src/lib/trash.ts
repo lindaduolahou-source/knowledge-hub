@@ -26,7 +26,16 @@ export type TrashSectionItem = {
   moduleId: string;
   title: string;
   section: ModuleSectionDef;
-  texts: Partial<Record<Locale, { title: string; body: string }>>;
+  texts: Partial<
+    Record<
+      Locale,
+      {
+        title: string;
+        body: string;
+        fields?: Record<string, { label: string; value: string }>;
+      }
+    >
+  >;
   deletedAt: number;
 };
 
@@ -51,6 +60,7 @@ export type TrashPostItem = {
 export type TrashRoadmapStageItem = {
   id: string;
   kind: "roadmap";
+  moduleId: string;
   title: string;
   snapshot: Partial<Record<Locale, RoadmapItem>>;
   deletedAt: number;
@@ -61,7 +71,16 @@ export type TrashContactItem = {
   kind: "contact";
   title: string;
   link: ContactLinkDef;
-  texts: Partial<Record<Locale, { label: string; value: string }>>;
+  texts: Partial<
+    Record<
+      Locale,
+      {
+        label: string;
+        value: string;
+        fields?: Record<string, { label: string; value: string }>;
+      }
+    >
+  >;
   deletedAt: number;
 };
 
@@ -112,7 +131,7 @@ function isTrashItem(value: unknown): value is TrashItem {
     case "post":
       return typeof value.collection === "string" && isRecord(value.snapshot);
     case "roadmap":
-      return isRecord(value.snapshot);
+      return typeof value.moduleId === "string" && isRecord(value.snapshot);
     case "contact":
       return isRecord(value.link) && typeof value.link.id === "string";
     default:
@@ -219,14 +238,28 @@ export function pushSectionToTrash(input: {
   moduleId: string;
   title: string;
   section: ModuleSectionDef;
-  texts: Partial<Record<Locale, { title: string; body: string }>>;
+  texts: Partial<
+    Record<
+      Locale,
+      {
+        title: string;
+        body: string;
+        fields?: Record<string, { label: string; value: string }>;
+      }
+    >
+  >;
 }): TrashSectionItem {
   return prependItem({
     id: newTrashId(),
     kind: "section",
     moduleId: input.moduleId,
     title: input.title.trim() || input.section.id,
-    section: { id: input.section.id, variant: input.section.variant },
+    section: {
+      id: input.section.id,
+      variant: input.section.variant,
+      fields: (input.section.fields ?? []).map((field) => ({ id: field.id })),
+      coreSlots: [...(input.section.coreSlots ?? ["title", "body"])],
+    },
     texts: input.texts,
     deletedAt: Date.now(),
   }) as TrashSectionItem;
@@ -263,12 +296,14 @@ export function pushPostToTrash(input: {
 }
 
 export function pushRoadmapStageToTrash(input: {
+  moduleId: string;
   title: string;
   snapshot: Partial<Record<Locale, RoadmapItem>>;
 }): TrashRoadmapStageItem {
   return prependItem({
     id: newTrashId(),
     kind: "roadmap",
+    moduleId: input.moduleId,
     title: input.title.trim() || "stage",
     snapshot: input.snapshot,
     deletedAt: Date.now(),
@@ -278,13 +313,27 @@ export function pushRoadmapStageToTrash(input: {
 export function pushContactToTrash(input: {
   title: string;
   link: ContactLinkDef;
-  texts: Partial<Record<Locale, { label: string; value: string }>>;
+  texts: Partial<
+    Record<
+      Locale,
+      {
+        label: string;
+        value: string;
+        fields?: Record<string, { label: string; value: string }>;
+      }
+    >
+  >;
 }): TrashContactItem {
   return prependItem({
     id: newTrashId(),
     kind: "contact",
     title: input.title.trim() || input.link.id,
-    link: { id: input.link.id, kind: input.link.kind },
+    link: {
+      id: input.link.id,
+      kind: input.link.kind,
+      fields: (input.link.fields ?? []).map((field) => ({ id: field.id })),
+      coreSlots: [...(input.link.coreSlots ?? ["label", "value"])],
+    },
     texts: input.texts,
     deletedAt: Date.now(),
   }) as TrashContactItem;

@@ -6,18 +6,33 @@ import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { ModuleId } from "@/lib/modules";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EditableModuleField } from "@/components/EditableModuleField";
+import { ModuleContentExtraFields } from "@/components/ModuleContentExtraFields";
+import { RemovableSlot } from "@/components/RemovableSlot";
+import { DragHandle, SortableItem, SortableList } from "@/components/SortableReorder";
 import {
+  removeCoreSlot,
+  restoreCoreSlotOrAddCustom,
+} from "@/lib/core-slots";
+import { saveModuleContent } from "@/lib/module-content";
+import {
+  addModuleSectionField,
   createModuleSection,
   loadModuleSections,
   MODULE_SECTIONS_EVENT,
   removeModuleSection,
+  removeModuleSectionField,
+  reorderModuleSections,
+  SECTION_CORE_SLOTS,
   sectionBodyKey,
+  sectionFieldLabelKey,
+  sectionFieldValueKey,
   sectionTitleKey,
+  setModuleSectionCoreSlots,
   type ModuleSectionDefault,
   type ModuleSectionDef,
+  type SectionCoreSlot,
   type SectionVariant,
 } from "@/lib/module-sections";
-import { saveModuleContent } from "@/lib/module-content";
 
 interface EditableModuleSectionsProps {
   locale: Locale;
@@ -37,7 +52,14 @@ export function EditableModuleSections({
   defaults,
   hideAdd = false,
 }: EditableModuleSectionsProps) {
-  const defaultLayout = defaults.map(({ id, variant }) => ({ id, variant }));
+  const defaultLayout = defaults.map(
+    ({ id, variant, fields, coreSlots }) => ({
+      id,
+      variant,
+      fields: fields ?? [],
+      coreSlots: coreSlots ?? [...SECTION_CORE_SLOTS],
+    }),
+  );
   const defaultsById = Object.fromEntries(
     defaults.map((item) => [item.id, item]),
   ) as Record<string, ModuleSectionDefault>;
@@ -46,6 +68,10 @@ export function EditableModuleSections({
   const [ready, setReady] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const [pendingRemoveCore, setPendingRemoveCore] = useState<{
+    sectionId: string;
+    slot: SectionCoreSlot;
+  } | null>(null);
 
   useEffect(() => {
     function refresh() {
@@ -98,6 +124,74 @@ export function EditableModuleSections({
     setPendingRemoveId(null);
   }
 
+  function handleReorder(from: number, to: number) {
+    setSections(reorderModuleSections(moduleId, sections, from, to));
+  }
+
+  async function addCustomField(sectionId: string) {
+    const result = addModuleSectionField(moduleId, sections, sectionId);
+    if (!result) return;
+    await saveModuleContent(
+      locale,
+      sectionFieldLabelKey(moduleId, sectionId, result.fieldId),
+      dict.common.newFieldLabel,
+    );
+    await saveModuleContent(
+      locale,
+      sectionFieldValueKey(moduleId, sectionId, result.fieldId),
+      dict.common.newFieldValue,
+    );
+    setSections(result.sections);
+  }
+
+  async function handleAddField(sectionId: string) {
+    const section = sections.find((item) => item.id === sectionId);
+    if (!section) return;
+    const core = section.coreSlots ?? [...SECTION_CORE_SLOTS];
+    const restored = restoreCoreSlotOrAddCustom(
+      core,
+      SECTION_CORE_SLOTS,
+      () => {
+        void addCustomField(sectionId);
+      },
+    );
+    if (restored) {
+      setSections(
+        setModuleSectionCoreSlots(moduleId, sections, sectionId, restored),
+      );
+    }
+  }
+
+  function handleRemoveField(sectionId: string, fieldId: string) {
+    setSections(
+      removeModuleSectionField(moduleId, sections, sectionId, fieldId),
+    );
+  }
+
+  function confirmRemoveCore() {
+    if (!pendingRemoveCore) return;
+    const section = sections.find(
+      (item) => item.id === pendingRemoveCore.sectionId,
+    );
+    if (!section) {
+      setPendingRemoveCore(null);
+      return;
+    }
+    const next = removeCoreSlot(
+      section.coreSlots ?? [...SECTION_CORE_SLOTS],
+      pendingRemoveCore.slot,
+    );
+    setSections(
+      setModuleSectionCoreSlots(
+        moduleId,
+        sections,
+        pendingRemoveCore.sectionId,
+        next,
+      ),
+    );
+    setPendingRemoveCore(null);
+  }
+
   if (!ready) {
     return (
       <div className="space-y-8" aria-hidden>
@@ -109,66 +203,119 @@ export function EditableModuleSections({
 
   return (
     <div className="space-y-8">
-      {sections.map((section) => {
-        const fallback = defaultsById[section.id];
-        const titleDefault =
-          fallback?.title ?? dict.home.newSectionTitle;
-        const bodyDefault = fallback?.body ?? dict.home.newSectionBody;
-        const placeholder =
-          section.variant === "list"
-            ? dict.home.listPlaceholder
-            : section.variant === "chips"
-              ? dict.home.chipsPlaceholder
-              : dict.home.pagePlaceholder;
+      <SortableList count={sections.length} onReorder={handleReorder}>
+        <div className="space-y-8">
+          {sections.map((section, index) => {
+            const fallback = defaultsById[section.id];
+            const titleDefault =
+              fallback?.title ?? dict.home.newSectionTitle;
+            const bodyDefault = fallback?.body ?? dict.home.newSectionBody;
+            const placeholder =
+              section.variant === "list"
+                ? dict.home.listPlaceholder
+                : section.variant === "chips"
+                  ? dict.home.chipsPlaceholder
+                  : dict.home.pagePlaceholder;
+            const core = section.coreSlots ?? [...SECTION_CORE_SLOTS];
 
-        return (
-          <section key={section.id} className="group/section relative">
-            <div className="mb-3 flex items-start gap-2">
-              <div
-                className="min-w-0 flex-1"
-                style={{ color: accentColor }}
+            return (
+              <SortableItem
+                key={section.id}
+                index={index}
+                className="group/item relative"
               >
-                <EditableModuleField
-                  locale={locale}
-                  fieldKey={sectionTitleKey(moduleId, section.id)}
-                  defaultText={titleDefault}
-                  editHint={dict.home.noteEdit}
-                  placeholder={dict.home.titlePlaceholder}
-                  saveHint={dict.home.noteSaveHint}
-                  rows={1}
-                  commitOnEnter
-                  muted={false}
-                  inheritColor
-                  textClassName="font-mono text-sm"
-                  accentColor={accentColor}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => requestRemove(section.id)}
-                className="mt-0.5 shrink-0 cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
-                aria-label={dict.home.removeSection}
-                title={dict.home.removeSection}
-              >
-                ×
-              </button>
-            </div>
+                <section>
+                  <div className="mb-3 flex items-center justify-end gap-0.5">
+                    <DragHandle index={index} label={dict.common.reorder} />
+                    <button
+                      type="button"
+                      onClick={() => requestRemove(section.id)}
+                      className="cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
+                      aria-label={dict.home.removeSection}
+                      title={dict.home.removeSection}
+                    >
+                      ×
+                    </button>
+                  </div>
 
-            <EditableModuleField
-              locale={locale}
-              fieldKey={sectionBodyKey(moduleId, section.id)}
-              defaultText={bodyDefault}
-              editHint={dict.home.noteEdit}
-              placeholder={placeholder}
-              saveHint={dict.home.pageSaveHint}
-              rows={section.variant === "plain" ? 4 : 3}
-              variant={section.variant}
-              accentColor={accentColor}
-              muted={false}
-            />
-          </section>
-        );
-      })}
+                  <div className="space-y-2">
+                    {core.includes("title") && (
+                      <RemovableSlot
+                        removeLabel={dict.common.removeField}
+                        onRemove={() =>
+                          setPendingRemoveCore({
+                            sectionId: section.id,
+                            slot: "title",
+                          })
+                        }
+                      >
+                        <div style={{ color: accentColor }}>
+                          <EditableModuleField
+                            locale={locale}
+                            fieldKey={sectionTitleKey(moduleId, section.id)}
+                            defaultText={titleDefault}
+                            editHint={dict.home.noteEdit}
+                            placeholder={dict.home.titlePlaceholder}
+                            saveHint={dict.home.noteSaveHint}
+                            rows={1}
+                            commitOnEnter
+                            muted={false}
+                            inheritColor
+                            textClassName="font-mono text-sm"
+                            accentColor={accentColor}
+                          />
+                        </div>
+                      </RemovableSlot>
+                    )}
+
+                    {core.includes("body") && (
+                      <RemovableSlot
+                        removeLabel={dict.common.removeField}
+                        onRemove={() =>
+                          setPendingRemoveCore({
+                            sectionId: section.id,
+                            slot: "body",
+                          })
+                        }
+                      >
+                        <EditableModuleField
+                          locale={locale}
+                          fieldKey={sectionBodyKey(moduleId, section.id)}
+                          defaultText={bodyDefault}
+                          editHint={dict.home.noteEdit}
+                          placeholder={placeholder}
+                          saveHint={dict.home.pageSaveHint}
+                          rows={section.variant === "plain" ? 4 : 3}
+                          variant={section.variant}
+                          accentColor={accentColor}
+                          muted={false}
+                        />
+                      </RemovableSlot>
+                    )}
+                  </div>
+
+                  <ModuleContentExtraFields
+                    locale={locale}
+                    dict={dict}
+                    fields={section.fields ?? []}
+                    labelKey={(fieldId) =>
+                      sectionFieldLabelKey(moduleId, section.id, fieldId)
+                    }
+                    valueKey={(fieldId) =>
+                      sectionFieldValueKey(moduleId, section.id, fieldId)
+                    }
+                    onAdd={() => void handleAddField(section.id)}
+                    onRemove={(fieldId) =>
+                      handleRemoveField(section.id, fieldId)
+                    }
+                    accentColor={accentColor}
+                  />
+                </section>
+              </SortableItem>
+            );
+          })}
+        </div>
+      </SortableList>
 
       {!hideAdd && (
         <div className="rounded-xl border border-dashed border-white/20 px-4 py-3">
@@ -223,6 +370,14 @@ export function EditableModuleSections({
         cancelLabel={dict.common.cancel}
         onConfirm={confirmRemove}
         onCancel={() => setPendingRemoveId(null)}
+      />
+      <ConfirmDialog
+        open={pendingRemoveCore !== null}
+        message={dict.common.removeFieldConfirm}
+        confirmLabel={dict.common.confirm}
+        cancelLabel={dict.common.cancel}
+        onConfirm={confirmRemoveCore}
+        onCancel={() => setPendingRemoveCore(null)}
       />
     </div>
   );

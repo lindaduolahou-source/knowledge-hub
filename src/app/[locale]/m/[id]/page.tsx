@@ -6,6 +6,7 @@ import { EditableProjectGrid } from "@/components/EditableProjectGrid";
 import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
+import { RoadmapTimeline } from "@/components/RoadmapTimeline";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { isCustomModuleId, resolveModuleConfig } from "@/lib/module-layout";
@@ -77,6 +78,7 @@ export default async function CustomModulePage({
           hideAdd
         />
         <EditableProjectGrid locale={loc} dict={dict} moduleId={id} hideAdd />
+        <RoadmapTimeline locale={loc} moduleId={id} dict={dict} hideAdd />
         <EditablePostGrid
           locale={loc}
           dict={dict}

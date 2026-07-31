@@ -73,7 +73,26 @@ export function getPublishedModuleSections(
           item.variant === "list" ||
           item.variant === "chips"),
     )
-    .map((item) => ({ id: item.id, variant: item.variant }));
+    .map((item) => ({
+      id: item.id,
+      variant: item.variant,
+      fields: Array.isArray(item.fields)
+        ? item.fields
+            .filter(
+              (field): field is { id: string } =>
+                Boolean(field) &&
+                typeof field === "object" &&
+                typeof (field as { id?: unknown }).id === "string",
+            )
+            .map((field) => ({ id: field.id }))
+        : [],
+      coreSlots: Array.isArray(item.coreSlots)
+        ? item.coreSlots.filter(
+            (slot): slot is "title" | "body" =>
+              slot === "title" || slot === "body",
+          )
+        : (["title", "body"] as const).slice(),
+    }));
 }
 
 export function getPublishedSite(): PublishedSite {

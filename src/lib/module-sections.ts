@@ -1,27 +1,51 @@
-import type { Locale } from "@/i18n/config";
-import { locales } from "@/i18n/config";
 import type { ModuleId } from "./modules";
 import {
   purgeModuleContentKeys,
   resolveModuleContent,
   setModuleContentLocal,
 } from "./module-content";
+import {
+  cloneExtraFieldRefs,
+  createExtraFieldId,
+  normalizeExtraFieldRefs,
+  type ExtraFieldRef,
+} from "./extra-fields";
+import {
+  cloneCoreSlots,
+  normalizeCoreSlots,
+} from "./core-slots";
 import { getPublishedModuleSections } from "./published-site";
+import { moveIndex } from "./reorder";
 import { pushSectionToTrash } from "./trash";
+import type { Locale } from "@/i18n/config";
+import { locales } from "@/i18n/config";
 
 const STORAGE_KEY = "knowledge-hub:module-sections";
 export const MODULE_SECTIONS_EVENT = "knowledge-hub:module-sections-updated";
 
 export type SectionVariant = "plain" | "list" | "chips";
 
+export const SECTION_CORE_SLOTS = ["title", "body"] as const;
+export type SectionCoreSlot = (typeof SECTION_CORE_SLOTS)[number];
+
 export type ModuleSectionDef = {
   id: string;
   variant: SectionVariant;
+  /** Extra label/value slots (texts in module-content keys). */
+  fields: ExtraFieldRef[];
+  /** Built-in title/body slots still shown. */
+  coreSlots: SectionCoreSlot[];
 };
 
 export type ModuleSectionDefault = ModuleSectionDef & {
   title: string;
   body: string;
+};
+
+export type SectionLocaleTexts = {
+  title: string;
+  body: string;
+  fields?: Record<string, { label: string; value: string }>;
 };
 
 type SectionsStore = Record<string, ModuleSectionDef[]>;
@@ -48,6 +72,34 @@ function writeStore(store: SectionsStore) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
+function normalizeSection(item: unknown): ModuleSectionDef | null {
+  if (!item || typeof item !== "object") return null;
+  const row = item as Partial<ModuleSectionDef>;
+  if (typeof row.id !== "string" || !row.id) return null;
+  if (
+    row.variant !== "plain" &&
+    row.variant !== "list" &&
+    row.variant !== "chips"
+  ) {
+    return null;
+  }
+  return {
+    id: row.id,
+    variant: row.variant,
+    fields: normalizeExtraFieldRefs(row.fields),
+    coreSlots: normalizeCoreSlots(row.coreSlots, SECTION_CORE_SLOTS),
+  };
+}
+
+function cloneSection(section: ModuleSectionDef): ModuleSectionDef {
+  return {
+    id: section.id,
+    variant: section.variant,
+    fields: cloneExtraFieldRefs(section.fields ?? []),
+    coreSlots: cloneCoreSlots(section.coreSlots ?? [...SECTION_CORE_SLOTS]),
+  };
+}
+
 export function sectionTitleKey(
   moduleId: ModuleId | string,
   sectionId: string,
@@ -62,6 +114,36 @@ export function sectionBodyKey(moduleId: ModuleId | string, sectionId: string) {
   return `${moduleId}:section:${sectionId}:body`;
 }
 
+export function sectionFieldLabelKey(
+  moduleId: ModuleId | string,
+  sectionId: string,
+  fieldId: string,
+) {
+  return `${moduleId}:section:${sectionId}:field:${fieldId}:label`;
+}
+
+export function sectionFieldValueKey(
+  moduleId: ModuleId | string,
+  sectionId: string,
+  fieldId: string,
+) {
+  return `${moduleId}:section:${sectionId}:field:${fieldId}:value`;
+}
+
+function sectionContentKeys(moduleId: string, section: ModuleSectionDef) {
+  const keys = [
+    sectionTitleKey(moduleId, section.id),
+    sectionBodyKey(moduleId, section.id),
+  ];
+  for (const field of section.fields ?? []) {
+    keys.push(
+      sectionFieldLabelKey(moduleId, section.id, field.id),
+      sectionFieldValueKey(moduleId, section.id, field.id),
+    );
+  }
+  return keys;
+}
+
 export function loadModuleSections(
   moduleId: string,
   defaults: ModuleSectionDef[],
@@ -71,22 +153,15 @@ export function loadModuleSections(
     const stored = store[moduleId];
     if (Array.isArray(stored)) {
       return stored
-        .filter(
-          (item): item is ModuleSectionDef =>
-            Boolean(item) &&
-            typeof item.id === "string" &&
-            (item.variant === "plain" ||
-              item.variant === "list" ||
-              item.variant === "chips"),
-        )
-        .map((item) => ({ id: item.id, variant: item.variant }));
+        .map(normalizeSection)
+        .filter((item): item is ModuleSectionDef => Boolean(item));
     }
   }
 
   const published = getPublishedModuleSections(moduleId);
-  if (published) return published.map((item) => ({ ...item }));
+  if (published) return published.map(cloneSection);
 
-  return defaults.map((item) => ({ ...item }));
+  return defaults.map(cloneSection);
 }
 
 export function saveModuleSections(
@@ -94,12 +169,21 @@ export function saveModuleSections(
   sections: ModuleSectionDef[],
 ) {
   const store = loadStore();
-  store[moduleId] = sections.map((item) => ({
-    id: item.id,
-    variant: item.variant,
-  }));
+  store[moduleId] = sections.map(cloneSection);
   writeStore(store);
   emit(moduleId);
+}
+
+export function reorderModuleSections(
+  moduleId: string,
+  current: ModuleSectionDef[],
+  from: number,
+  to: number,
+): ModuleSectionDef[] {
+  const sections = moveIndex(current, from, to);
+  if (sections === current) return current;
+  saveModuleSections(moduleId, sections);
+  return sections;
 }
 
 export function createModuleSection(
@@ -108,9 +192,101 @@ export function createModuleSection(
   variant: SectionVariant = "plain",
 ): { sections: ModuleSectionDef[]; id: string } {
   const id = `sec-${Date.now().toString(36)}`;
-  const sections = [...current, { id, variant }];
+  const sections = [
+    ...current,
+    { id, variant, fields: [], coreSlots: [...SECTION_CORE_SLOTS] },
+  ];
   saveModuleSections(moduleId, sections);
   return { sections, id };
+}
+
+export function setModuleSectionCoreSlots(
+  moduleId: string,
+  current: ModuleSectionDef[],
+  sectionId: string,
+  coreSlots: SectionCoreSlot[],
+): ModuleSectionDef[] {
+  const sections = current.map((section) =>
+    section.id === sectionId
+      ? { ...section, coreSlots: cloneCoreSlots(coreSlots) }
+      : section,
+  );
+  saveModuleSections(moduleId, sections);
+  return sections;
+}
+
+export function addModuleSectionField(
+  moduleId: string,
+  current: ModuleSectionDef[],
+  sectionId: string,
+): { sections: ModuleSectionDef[]; fieldId: string } | null {
+  const fieldId = createExtraFieldId();
+  let found = false;
+  const sections = current.map((section) => {
+    if (section.id !== sectionId) return section;
+    found = true;
+    return {
+      ...section,
+      fields: [...(section.fields ?? []), { id: fieldId }],
+    };
+  });
+  if (!found) return null;
+  saveModuleSections(moduleId, sections);
+  return { sections, fieldId };
+}
+
+export function removeModuleSectionField(
+  moduleId: string,
+  current: ModuleSectionDef[],
+  sectionId: string,
+  fieldId: string,
+): ModuleSectionDef[] {
+  const sections = current.map((section) =>
+    section.id === sectionId
+      ? {
+          ...section,
+          fields: (section.fields ?? []).filter((field) => field.id !== fieldId),
+        }
+      : section,
+  );
+  saveModuleSections(moduleId, sections);
+  purgeModuleContentKeys([
+    sectionFieldLabelKey(moduleId, sectionId, fieldId),
+    sectionFieldValueKey(moduleId, sectionId, fieldId),
+  ]);
+  return sections;
+}
+
+function snapshotSectionTexts(
+  moduleId: string,
+  section: ModuleSectionDef,
+): Partial<Record<Locale, SectionLocaleTexts>> {
+  const titleKey = sectionTitleKey(moduleId, section.id);
+  const bodyKey = sectionBodyKey(moduleId, section.id);
+  const texts: Partial<Record<Locale, SectionLocaleTexts>> = {};
+  for (const locale of locales) {
+    const fields: Record<string, { label: string; value: string }> = {};
+    for (const field of section.fields ?? []) {
+      fields[field.id] = {
+        label: resolveModuleContent(
+          locale,
+          sectionFieldLabelKey(moduleId, section.id, field.id),
+          "",
+        ),
+        value: resolveModuleContent(
+          locale,
+          sectionFieldValueKey(moduleId, section.id, field.id),
+          "",
+        ),
+      };
+    }
+    texts[locale] = {
+      title: resolveModuleContent(locale, titleKey, ""),
+      body: resolveModuleContent(locale, bodyKey, ""),
+      fields,
+    };
+  }
+  return texts;
 }
 
 export function removeModuleSection(
@@ -120,17 +296,7 @@ export function removeModuleSection(
 ): ModuleSectionDef[] {
   const section = current.find((item) => item.id === sectionId);
   if (section) {
-    const titleKey = sectionTitleKey(moduleId, sectionId);
-    const bodyKey = sectionBodyKey(moduleId, sectionId);
-    const texts: Partial<
-      Record<Locale, { title: string; body: string }>
-    > = {};
-    for (const locale of locales) {
-      texts[locale] = {
-        title: resolveModuleContent(locale, titleKey, ""),
-        body: resolveModuleContent(locale, bodyKey, ""),
-      };
-    }
+    const texts = snapshotSectionTexts(moduleId, section);
     const display =
       texts.zh?.title?.trim() ||
       texts.en?.title?.trim() ||
@@ -138,7 +304,7 @@ export function removeModuleSection(
     pushSectionToTrash({
       moduleId,
       title: display,
-      section,
+      section: cloneSection(section),
       texts,
     });
   }
@@ -150,15 +316,18 @@ export function removeModuleSection(
 export function restoreModuleSection(
   moduleId: string,
   section: ModuleSectionDef,
-  texts: Partial<Record<Locale, { title: string; body: string }>>,
+  texts: Partial<Record<Locale, SectionLocaleTexts>>,
 ): boolean {
   const current = loadModuleSections(moduleId, []);
   if (current.some((item) => item.id === section.id)) return true;
 
-  saveModuleSections(moduleId, [
-    ...current,
-    { id: section.id, variant: section.variant },
-  ]);
+  const normalized = cloneSection({
+    id: section.id,
+    variant: section.variant,
+    fields: section.fields ?? [],
+    coreSlots: section.coreSlots ?? [...SECTION_CORE_SLOTS],
+  });
+  saveModuleSections(moduleId, [...current, normalized]);
 
   const titleKey = sectionTitleKey(moduleId, section.id);
   const bodyKey = sectionBodyKey(moduleId, section.id);
@@ -167,6 +336,20 @@ export function restoreModuleSection(
     if (!pair) continue;
     setModuleContentLocal(locale, titleKey, pair.title);
     setModuleContentLocal(locale, bodyKey, pair.body);
+    if (pair.fields) {
+      for (const [fieldId, fieldTexts] of Object.entries(pair.fields)) {
+        setModuleContentLocal(
+          locale,
+          sectionFieldLabelKey(moduleId, section.id, fieldId),
+          fieldTexts.label,
+        );
+        setModuleContentLocal(
+          locale,
+          sectionFieldValueKey(moduleId, section.id, fieldId),
+          fieldTexts.value,
+        );
+      }
+    }
   }
   return true;
 }
@@ -174,9 +357,14 @@ export function restoreModuleSection(
 export function purgeModuleSectionContent(
   moduleId: string,
   sectionId: string,
+  fields: ExtraFieldRef[] = [],
 ) {
-  purgeModuleContentKeys([
-    sectionTitleKey(moduleId, sectionId),
-    sectionBodyKey(moduleId, sectionId),
-  ]);
+  purgeModuleContentKeys(
+    sectionContentKeys(moduleId, {
+      id: sectionId,
+      variant: "plain",
+      fields,
+      coreSlots: [...SECTION_CORE_SLOTS],
+    }),
+  );
 }

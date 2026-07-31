@@ -1,10 +1,31 @@
 import type { Locale } from "@/i18n/config";
 import type { Post, PostMeta } from "@/lib/content";
 import {
+  cloneCoreSlots,
+  normalizeCoreSlots,
+} from "@/lib/core-slots";
+import {
+  alignExtraFields,
+  cloneExtraFields,
+  normalizeExtraFields,
+  translateExtraFields,
+  type ExtraField,
+} from "@/lib/extra-fields";
+import {
   rememberTocPhrase,
   translateTocNote,
 } from "@/lib/translate-note";
 import { pushPostToTrash } from "@/lib/trash";
+import { moveIndex } from "@/lib/reorder";
+
+export const POST_CORE_SLOTS = [
+  "date",
+  "title",
+  "excerpt",
+  "tags",
+  "content",
+] as const;
+export type PostCoreSlot = (typeof POST_CORE_SLOTS)[number];
 
 export type PostCollection = string;
 
@@ -51,6 +72,9 @@ export type EditablePost = {
   excerpt: string;
   tags: string[];
   content: string;
+  fields: ExtraField[];
+  /** Built-in date/title/excerpt/tags/content slots still shown. */
+  coreSlots: PostCoreSlot[];
 };
 
 type PostStore = Record<string, Partial<Record<Locale, EditablePost[]>>>;
@@ -99,6 +123,8 @@ function normalizeItem(item: unknown): EditablePost | null {
       ? row.tags.filter((tag): tag is string => typeof tag === "string")
       : [],
     content: typeof row.content === "string" ? row.content : "",
+    fields: normalizeExtraFields(row.fields),
+    coreSlots: normalizeCoreSlots(row.coreSlots, POST_CORE_SLOTS),
   };
 }
 
@@ -106,6 +132,8 @@ function cloneItems(items: EditablePost[]): EditablePost[] {
   return items.map((item) => ({
     ...item,
     tags: [...item.tags],
+    fields: cloneExtraFields(item.fields),
+    coreSlots: cloneCoreSlots(item.coreSlots ?? [...POST_CORE_SLOTS]),
   }));
 }
 
@@ -120,6 +148,8 @@ export function postFromMeta(
     excerpt: post.excerpt,
     tags: [...post.tags],
     content,
+    fields: [],
+    coreSlots: [...POST_CORE_SLOTS],
   };
 }
 
@@ -195,11 +225,18 @@ function alignPeerStructure(
   return sourceItems.map((item) => {
     const prev = peerBySlug.get(item.slug);
     if (!prev) {
-      return { ...item, tags: [...item.tags] };
+      return {
+        ...item,
+        tags: [...item.tags],
+        fields: cloneExtraFields(item.fields),
+        coreSlots: cloneCoreSlots(item.coreSlots ?? [...POST_CORE_SLOTS]),
+      };
     }
     return {
       ...prev,
       date: item.date,
+      fields: alignExtraFields(item.fields, prev.fields),
+      coreSlots: cloneCoreSlots(item.coreSlots ?? [...POST_CORE_SLOTS]),
     };
   });
 }
@@ -234,6 +271,8 @@ export function createPostItem(
       excerpt: seed.excerpt,
       tags: [],
       content: seed.content,
+      fields: [],
+      coreSlots: [...POST_CORE_SLOTS],
     },
   ];
   saveWithPeerStructure(collection, locale, items, peerFallback);
@@ -263,6 +302,20 @@ export function removePostItem(
     });
   }
   const items = current.filter((item) => item.slug !== slug);
+  saveWithPeerStructure(collection, locale, items, peerFallback);
+  return items;
+}
+
+export function reorderPostItems(
+  collection: PostCollection,
+  locale: Locale,
+  current: EditablePost[],
+  from: number,
+  to: number,
+  peerFallback: EditablePost[] = current,
+): EditablePost[] {
+  const items = moveIndex(current, from, to);
+  if (items === current) return current;
   saveWithPeerStructure(collection, locale, items, peerFallback);
   return items;
 }
@@ -310,6 +363,12 @@ export function updatePostItem(
           ...item,
           ...patch,
           tags: patch.tags ? [...patch.tags] : item.tags,
+          fields: patch.fields
+            ? cloneExtraFields(patch.fields)
+            : cloneExtraFields(item.fields),
+          coreSlots: patch.coreSlots
+            ? cloneCoreSlots(patch.coreSlots)
+            : cloneCoreSlots(item.coreSlots ?? [...POST_CORE_SLOTS]),
         }
       : item,
   );
@@ -319,7 +378,8 @@ export function updatePostItem(
     patch.title !== undefined ||
     patch.excerpt !== undefined ||
     patch.content !== undefined ||
-    patch.tags !== undefined
+    patch.tags !== undefined ||
+    patch.fields !== undefined
   ) {
     void syncPeerText(collection, locale, slug, items);
   }
@@ -355,6 +415,11 @@ async function syncPeerText(
       : "";
     if (next) translatedTags.push(next);
   }
+  const translatedFields = await translateExtraFields(
+    source.fields,
+    locale,
+    peer,
+  );
 
   if (source.title.trim() && translatedTitle) {
     rememberTocPhrase(source.title, translatedTitle, locale);
@@ -371,6 +436,8 @@ async function syncPeerText(
           excerpt: translatedExcerpt,
           content: translatedContent,
           tags: translatedTags,
+          fields: translatedFields,
+          coreSlots: cloneCoreSlots(source.coreSlots ?? [...POST_CORE_SLOTS]),
           date: source.date,
         }
       : item,

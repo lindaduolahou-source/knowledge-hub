@@ -6,6 +6,7 @@ import { EditableProjectGrid } from "@/components/EditableProjectGrid";
 import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
+import { RoadmapTimeline } from "@/components/RoadmapTimeline";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getModule } from "@/lib/modules";
@@ -41,12 +42,16 @@ export default async function SpacePage({
     {
       id: "focus",
       variant: "list",
+      fields: [],
+      coreSlots: ["title", "body"],
       title: dict.space.focus,
       body: focusDefault,
     },
     {
       id: "skills",
       variant: "chips",
+      fields: [],
+      coreSlots: ["title", "body"],
       title: dict.space.skills,
       body: DEFAULT_SKILLS,
     },
@@ -107,6 +112,7 @@ export default async function SpacePage({
           moduleId="space"
           hideAdd
         />
+        <RoadmapTimeline locale={loc} moduleId="space" dict={dict} hideAdd />
         <EditablePostGrid
           locale={loc}
           dict={dict}

@@ -38,6 +38,10 @@ export interface RoadmapItem {
   description: string;
   status: "completed" | "inProgress" | "planned";
   topics: string[];
+  /** Extra user-defined fields within the stage. */
+  fields?: { id: string; label: string; value: string }[];
+  /** Built-in status/title/description/topics slots still shown. */
+  coreSlots?: ("status" | "title" | "description" | "topics")[];
 }
 
 function readMarkdownDir(
