@@ -17,9 +17,11 @@ import {
   getTrashItems,
   isDismissedBuiltin,
   pushModuleToTrash,
+  removeTrashItem,
   TRASH_EVENT,
   type TrashItem,
 } from "@/lib/trash";
+import { restoreTrashContent } from "@/lib/trash-actions";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface TrashButtonProps {
@@ -50,6 +52,56 @@ function migrateHiddenBuiltins(dict: Dictionary) {
       title: dict.modules[id].title,
       icon: mod.icon,
     });
+  }
+}
+
+function kindLabel(item: TrashItem, dict: Dictionary) {
+  switch (item.kind) {
+    case "module":
+      return isBuiltinModuleId(item.moduleId)
+        ? dict.trash.kindModule
+        : dict.trash.kindCustomModule;
+    case "section":
+      return dict.trash.kindSection;
+    case "project":
+      return dict.trash.kindProject;
+    case "post":
+      return dict.trash.kindPost;
+    case "roadmap":
+      return dict.trash.kindRoadmap;
+    case "contact":
+      return dict.trash.kindContact;
+    default:
+      return dict.trash.kindItem;
+  }
+}
+
+function itemIcon(item: TrashItem) {
+  switch (item.kind) {
+    case "module":
+      return item.icon ?? "◇";
+    case "section":
+      return "▣";
+    case "project":
+      return "⬡";
+    case "post":
+      return "✦";
+    case "roadmap":
+      return "◎";
+    case "contact":
+      return "✉";
+    default:
+      return "·";
+  }
+}
+
+function restoreItem(item: TrashItem) {
+  if (item.kind === "module") {
+    restoreModuleFromTrash(item.moduleId);
+    return;
+  }
+  if (restoreTrashContent(item)) {
+    removeTrashItem(item.id);
   }
 }
 
@@ -193,7 +245,7 @@ export function TrashButton({ locale, dict, immersive }: TrashButtonProps) {
                       }`}
                       aria-hidden
                     >
-                      {item.kind === "module" ? item.icon ?? "◇" : "·"}
+                      {itemIcon(item)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
@@ -204,18 +256,14 @@ export function TrashButton({ locale, dict, immersive }: TrashButtonProps) {
                           immersive ? "text-white/40" : "text-muted"
                         }`}
                       >
-                        {item.kind === "module"
-                          ? isBuiltinModuleId(item.moduleId)
-                            ? dict.trash.kindModule
-                            : dict.trash.kindCustomModule
-                          : dict.trash.kindItem}{" "}
-                        · {formatDeletedAt(item.deletedAt, locale)}
+                        {kindLabel(item, dict)} ·{" "}
+                        {formatDeletedAt(item.deletedAt, locale)}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => {
-                            restoreModuleFromTrash(item.moduleId);
+                            restoreItem(item);
                             refresh();
                           }}
                           className={`cursor-pointer rounded-md px-2.5 py-1 text-xs transition-colors ${

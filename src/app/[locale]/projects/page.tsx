@@ -1,12 +1,19 @@
 import { notFound } from "next/navigation";
 import { EditableModuleField } from "@/components/EditableModuleField";
+import { EditableModuleSections } from "@/components/EditableModuleSections";
+import { EditablePostGrid } from "@/components/EditablePostGrid";
+import { EditableProjectGrid } from "@/components/EditableProjectGrid";
+import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
-import { ProjectCard } from "@/components/ProjectCard";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getProjects } from "@/lib/content";
 import { getModule } from "@/lib/modules";
+import {
+  postCollectionForModule,
+  postHrefPrefixForModule,
+} from "@/lib/post-edits";
 
 export default async function ProjectsPage({
   params,
@@ -48,24 +55,47 @@ export default async function ProjectsPage({
         placeholder={dict.home.titlePlaceholder}
         saveHint={dict.home.noteSaveHint}
       />
-      <EditableModuleField
-        locale={loc}
-        fieldKey="lab:intro"
-        defaultText={dict.modules.lab.description}
-        editHint={dict.home.noteEdit}
-        placeholder={dict.home.pagePlaceholder}
-        saveHint={dict.home.pageSaveHint}
-        rows={3}
-        className="mb-8 max-w-2xl"
-      />
-      <div className="grid gap-4 sm:grid-cols-2">
-        {projects.map((project) => (
-          <ProjectCard
-            key={project.slug}
-            project={project}
-            techLabel={dict.projects.tech}
-          />
-        ))}
+      <div className="space-y-8">
+        <EditableModuleField
+          locale={loc}
+          fieldKey="lab:intro"
+          defaultText={dict.modules.lab.description}
+          editHint={dict.home.noteEdit}
+          placeholder={dict.home.pagePlaceholder}
+          saveHint={dict.home.pageSaveHint}
+          rows={3}
+          className="max-w-2xl"
+        />
+        <EditableModuleSections
+          locale={loc}
+          dict={dict}
+          moduleId="lab"
+          accentColor={mod.color}
+          defaults={[]}
+          hideAdd
+        />
+        <EditableProjectGrid
+          locale={loc}
+          dict={dict}
+          moduleId="lab"
+          projects={projects}
+          hideAdd
+        />
+        <EditablePostGrid
+          locale={loc}
+          dict={dict}
+          collection={postCollectionForModule("lab")}
+          posts={[]}
+          hrefPrefix={postHrefPrefixForModule("lab")}
+          readMore={dict.blog.readMore}
+          hideAdd
+        />
+        <ModuleAddMenu
+          locale={loc}
+          dict={dict}
+          moduleId="lab"
+          features={{ projectDefaults: projects }}
+        />
       </div>
     </>
   );

@@ -1,10 +1,18 @@
 import { notFound } from "next/navigation";
 import { ContactEditableBody } from "@/components/ContactEditableBody";
+import { EditableModuleSections } from "@/components/EditableModuleSections";
+import { EditablePostGrid } from "@/components/EditablePostGrid";
+import { EditableProjectGrid } from "@/components/EditableProjectGrid";
+import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getModule } from "@/lib/modules";
+import {
+  postCollectionForModule,
+  postHrefPrefixForModule,
+} from "@/lib/post-edits";
 
 export default async function ContactPage({
   params,
@@ -57,7 +65,38 @@ export default async function ContactPage({
         placeholder={dict.home.titlePlaceholder}
         saveHint={dict.home.noteSaveHint}
       />
-      <ContactEditableBody locale={loc} dict={dict} />
+      <div className="space-y-8">
+        <ContactEditableBody locale={loc} dict={dict} hideAdd />
+        <EditableModuleSections
+          locale={loc}
+          dict={dict}
+          moduleId="contact"
+          accentColor={mod.color}
+          defaults={[]}
+          hideAdd
+        />
+        <EditableProjectGrid
+          locale={loc}
+          dict={dict}
+          moduleId="contact"
+          hideAdd
+        />
+        <EditablePostGrid
+          locale={loc}
+          dict={dict}
+          collection={postCollectionForModule("contact")}
+          posts={[]}
+          hrefPrefix={postHrefPrefixForModule("contact")}
+          readMore={dict.blog.readMore}
+          hideAdd
+        />
+        <ModuleAddMenu
+          locale={loc}
+          dict={dict}
+          moduleId="contact"
+          features={{ contact: true }}
+        />
+      </div>
     </>
   );
 }

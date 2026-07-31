@@ -7,15 +7,14 @@ import {
   type ModuleConfig,
 } from "./modules";
 import {
-  clearTrash,
   findTrashModule,
-  getTrashItems,
   pushModuleToTrash,
-  removeTrashItem,
   removeTrashModuleByModuleId,
 } from "./trash";
-import { purgeModuleContent } from "./module-content";
-import { purgeTocNotesForModule } from "./toc-notes";
+import {
+  emptyAllTrashPermanently,
+  permanentlyDeleteTrashEntry,
+} from "./trash-actions";
 import { getPublishedModuleLayout } from "./published-site";
 
 const STORAGE_KEY = "knowledge-hub:module-layout";
@@ -162,26 +161,11 @@ export function restoreModuleFromTrash(moduleId: string): boolean {
 }
 
 export function permanentlyDeleteFromTrash(trashId: string) {
-  const item = getTrashItems().find((entry) => entry.id === trashId);
-  if (!item) return;
-
-  if (item.kind === "module" && !isBuiltinModuleId(item.moduleId)) {
-    purgeModuleContent(item.moduleId);
-    purgeTocNotesForModule(item.moduleId);
-  }
-  removeTrashItem(trashId, {
-    dismissBuiltin: item.kind === "module" && isBuiltinModuleId(item.moduleId),
-  });
+  permanentlyDeleteTrashEntry(trashId);
 }
 
 export function emptyTrashPermanently() {
-  for (const item of getTrashItems()) {
-    if (item.kind === "module" && !isBuiltinModuleId(item.moduleId)) {
-      purgeModuleContent(item.moduleId);
-      purgeTocNotesForModule(item.moduleId);
-    }
-  }
-  clearTrash({ dismissRemainingBuiltins: true });
+  emptyAllTrashPermanently();
 }
 
 export function addBuiltinModule(id: BuiltinModuleId) {

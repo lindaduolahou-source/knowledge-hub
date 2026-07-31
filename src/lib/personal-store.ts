@@ -125,11 +125,17 @@ export function createSyncedTextStore(options: {
     }
   }
 
+  /** Write a key for one locale without translating the peer. */
+  function setLocal(locale: Locale, key: string, value: string): StoreMap {
+    return persist(locale, key, value);
+  }
+
   return {
     eventName,
     load,
     resolve,
     save,
+    setLocal,
     ensureCrossLocale,
     removeKeysMatching,
   };

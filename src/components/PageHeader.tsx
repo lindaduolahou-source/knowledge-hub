@@ -1,8 +1,9 @@
 "use client";
 
 import type { Locale } from "@/i18n/config";
-import type { ModuleConfig } from "@/lib/modules";
+import { EditableModuleField } from "@/components/EditableModuleField";
 import { EditableModuleTitle } from "./EditableModuleTitle";
+import type { ModuleConfig } from "@/lib/modules";
 
 interface PageHeaderProps {
   locale: Locale;
@@ -13,6 +14,8 @@ interface PageHeaderProps {
   editHint: string;
   placeholder: string;
   saveHint: string;
+  pagePlaceholder?: string;
+  pageSaveHint?: string;
 }
 
 export function PageHeader({
@@ -24,6 +27,8 @@ export function PageHeader({
   editHint,
   placeholder,
   saveHint,
+  pagePlaceholder,
+  pageSaveHint,
 }: PageHeaderProps) {
   return (
     <div className="mb-10 border-b border-border pb-8">
@@ -50,9 +55,16 @@ export function PageHeader({
           color={module?.color}
         />
       </div>
-      <p className="max-w-2xl text-base leading-relaxed text-muted">
-        {subtitle}
-      </p>
+      <EditableModuleField
+        locale={locale}
+        fieldKey={`${moduleId}:subtitle`}
+        defaultText={subtitle}
+        editHint={editHint}
+        placeholder={pagePlaceholder ?? placeholder}
+        saveHint={pageSaveHint ?? saveHint}
+        rows={2}
+        className="max-w-2xl"
+      />
       {module && (
         <div
           className="mt-4 h-0.5 w-16 rounded-full"

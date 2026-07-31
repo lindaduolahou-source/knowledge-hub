@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
 import { EditableModuleField } from "@/components/EditableModuleField";
+import { EditableModuleSections } from "@/components/EditableModuleSections";
+import { EditablePostGrid } from "@/components/EditablePostGrid";
+import { EditableProjectGrid } from "@/components/EditableProjectGrid";
+import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
 import { RoadmapTimeline } from "@/components/RoadmapTimeline";
@@ -7,6 +11,10 @@ import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRoadmap } from "@/lib/content";
 import { getModule } from "@/lib/modules";
+import {
+  postCollectionForModule,
+  postHrefPrefixForModule,
+} from "@/lib/post-edits";
 
 export default async function RoadmapPage({
   params,
@@ -48,17 +56,43 @@ export default async function RoadmapPage({
         placeholder={dict.home.titlePlaceholder}
         saveHint={dict.home.noteSaveHint}
       />
-      <EditableModuleField
-        locale={loc}
-        fieldKey="roadmap:intro"
-        defaultText={dict.modules.roadmap.description}
-        editHint={dict.home.noteEdit}
-        placeholder={dict.home.pagePlaceholder}
-        saveHint={dict.home.pageSaveHint}
-        rows={3}
-        className="mb-8 max-w-2xl"
-      />
-      <RoadmapTimeline items={items} dict={dict} />
+      <div className="space-y-8">
+        <EditableModuleField
+          locale={loc}
+          fieldKey="roadmap:intro"
+          defaultText={dict.modules.roadmap.description}
+          editHint={dict.home.noteEdit}
+          placeholder={dict.home.pagePlaceholder}
+          saveHint={dict.home.pageSaveHint}
+          rows={3}
+          className="max-w-2xl"
+        />
+        <EditableModuleSections
+          locale={loc}
+          dict={dict}
+          moduleId="roadmap"
+          accentColor={mod.color}
+          defaults={[]}
+          hideAdd
+        />
+        <RoadmapTimeline locale={loc} items={items} dict={dict} />
+        <EditableProjectGrid
+          locale={loc}
+          dict={dict}
+          moduleId="roadmap"
+          hideAdd
+        />
+        <EditablePostGrid
+          locale={loc}
+          dict={dict}
+          collection={postCollectionForModule("roadmap")}
+          posts={[]}
+          hrefPrefix={postHrefPrefixForModule("roadmap")}
+          readMore={dict.blog.readMore}
+          hideAdd
+        />
+        <ModuleAddMenu locale={loc} dict={dict} moduleId="roadmap" />
+      </div>
     </>
   );
 }

@@ -1,12 +1,19 @@
 import { notFound } from "next/navigation";
 import { EditableModuleField } from "@/components/EditableModuleField";
 import { EditableModuleSections } from "@/components/EditableModuleSections";
+import { EditablePostGrid } from "@/components/EditablePostGrid";
+import { EditableProjectGrid } from "@/components/EditableProjectGrid";
+import { ModuleAddMenu } from "@/components/ModuleAddMenu";
 import { ModulePageChrome } from "@/components/ModulePageChrome";
 import { PageHeader } from "@/components/PageHeader";
 import { isValidLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { isCustomModuleId, resolveModuleConfig } from "@/lib/module-layout";
 import { moduleIntroKey } from "@/lib/module-content";
+import {
+  postCollectionForModule,
+  postHrefPrefixForModule,
+} from "@/lib/post-edits";
 
 export default async function CustomModulePage({
   params,
@@ -47,6 +54,8 @@ export default async function CustomModulePage({
         editHint={dict.home.noteEdit}
         placeholder={dict.home.titlePlaceholder}
         saveHint={dict.home.noteSaveHint}
+        pagePlaceholder={dict.home.pagePlaceholder}
+        pageSaveHint={dict.home.pageSaveHint}
       />
       <div className="space-y-8">
         <EditableModuleField
@@ -65,7 +74,19 @@ export default async function CustomModulePage({
           moduleId={id}
           accentColor={mod.color}
           defaults={[]}
+          hideAdd
         />
+        <EditableProjectGrid locale={loc} dict={dict} moduleId={id} hideAdd />
+        <EditablePostGrid
+          locale={loc}
+          dict={dict}
+          collection={postCollectionForModule(id)}
+          posts={[]}
+          hrefPrefix={postHrefPrefixForModule(id)}
+          readMore={dict.blog.readMore}
+          hideAdd
+        />
+        <ModuleAddMenu locale={loc} dict={dict} moduleId={id} />
       </div>
     </>
   );

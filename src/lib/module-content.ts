@@ -24,10 +24,17 @@ const store = createSyncedTextStore({
 
 export const resolveModuleContent = store.resolve;
 export const saveModuleContent = store.save;
+export const setModuleContentLocal = store.setLocal;
 export const ensureCrossLocaleModuleContent = store.ensureCrossLocale;
 
 export function purgeModuleContent(moduleId: ModuleId) {
   store.removeKeysMatching(
     (key) => key === moduleId || key.startsWith(`${moduleId}:`),
   );
+}
+
+export function purgeModuleContentKeys(keys: string[]) {
+  if (keys.length === 0) return;
+  const set = new Set(keys);
+  store.removeKeysMatching((key) => set.has(key));
 }

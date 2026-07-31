@@ -25,6 +25,8 @@ interface EditableModuleSectionsProps {
   moduleId: ModuleId | string;
   accentColor?: string;
   defaults: ModuleSectionDefault[];
+  /** Hide local add control when a shared ModuleAddMenu is used. */
+  hideAdd?: boolean;
 }
 
 export function EditableModuleSections({
@@ -33,6 +35,7 @@ export function EditableModuleSections({
   moduleId,
   accentColor = "#b7c4ce",
   defaults,
+  hideAdd = false,
 }: EditableModuleSectionsProps) {
   const defaultLayout = defaults.map(({ id, variant }) => ({ id, variant }));
   const defaultsById = Object.fromEntries(
@@ -143,7 +146,7 @@ export function EditableModuleSections({
               <button
                 type="button"
                 onClick={() => requestRemove(section.id)}
-                className="mt-0.5 shrink-0 cursor-pointer rounded px-1.5 text-sm opacity-0 pointer-events-none transition-opacity group-hover/section:pointer-events-auto group-hover/section:opacity-100 group-hover/section:text-white/35 hover:!text-white/70 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:text-white/70"
+                className="mt-0.5 shrink-0 cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
                 aria-label={dict.home.removeSection}
                 title={dict.home.removeSection}
               >
@@ -167,49 +170,51 @@ export function EditableModuleSections({
         );
       })}
 
-      <div className="rounded-xl border border-dashed border-white/20 px-4 py-3">
-        {!pickerOpen ? (
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="cursor-pointer text-sm text-white/45 transition-colors hover:text-white/80"
-          >
-            <span className="mr-2 text-base text-white/50">+</span>
-            {dict.home.addSection}
-          </button>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-white/40">{dict.home.addSectionHint}</p>
-              <button
-                type="button"
-                onClick={() => setPickerOpen(false)}
-                className="cursor-pointer text-xs text-white/35 hover:text-white/70"
-              >
-                {dict.home.cancelAdd}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ["plain", dict.home.sectionVariantPlain],
-                  ["list", dict.home.sectionVariantList],
-                  ["chips", dict.home.sectionVariantChips],
-                ] as const
-              ).map(([variant, label]) => (
+      {!hideAdd && (
+        <div className="rounded-xl border border-dashed border-white/20 px-4 py-3">
+          {!pickerOpen ? (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="cursor-pointer text-sm text-white/45 transition-colors hover:text-white/80"
+            >
+              <span className="mr-2 text-base text-white/50">+</span>
+              {dict.home.addSection}
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-white/40">{dict.home.addSectionHint}</p>
                 <button
-                  key={variant}
                   type="button"
-                  onClick={() => void handleAdd(variant)}
-                  className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
+                  onClick={() => setPickerOpen(false)}
+                  className="cursor-pointer text-xs text-white/35 hover:text-white/70"
                 >
-                  + {label}
+                  {dict.home.cancelAdd}
                 </button>
-              ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ["plain", dict.home.sectionVariantPlain],
+                    ["list", dict.home.sectionVariantList],
+                    ["chips", dict.home.sectionVariantChips],
+                  ] as const
+                ).map(([variant, label]) => (
+                  <button
+                    key={variant}
+                    type="button"
+                    onClick={() => void handleAdd(variant)}
+                    className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
+                  >
+                    + {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <ConfirmDialog
         open={pendingRemoveId !== null}

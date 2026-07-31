@@ -35,13 +35,16 @@ export const zh = {
     addModuleHint: "从回收站恢复，或新建自定义模块",
     createCustomModule: "新建自定义模块",
     cancelAdd: "取消",
+    addContent: "添加",
+    addContentHint: "选择要添加的内容",
+    addContentBack: "返回",
     removeModule: "移除模块",
     removeModuleConfirm: "确定移除此模块？可在回收站恢复。",
     moduleManageHint: "悬停卡片可移除 · 底部可添加",
     addSection: "添加小节",
     addSectionHint: "选择小节内容形式",
     removeSection: "移除小节",
-    removeSectionConfirm: "确定移除此小节？",
+    removeSectionConfirm: "确定移除此小节？可在回收站恢复。",
     newSectionTitle: "新小节",
     newSectionBody: "写一段内容…",
     sectionVariantPlain: "段落",
@@ -64,10 +67,15 @@ export const zh = {
     restore: "恢复",
     deleteForever: "彻底删除",
     empty: "清空",
-    emptyConfirm: "确定清空回收站？自定义模块的内容将无法恢复。",
+    emptyConfirm: "确定清空回收站？清空后将无法恢复。",
     deleteConfirm: "确定彻底删除该项？此操作无法撤销。",
     kindModule: "模块",
     kindCustomModule: "自定义模块",
+    kindSection: "小节",
+    kindProject: "项目",
+    kindPost: "文章",
+    kindRoadmap: "学习阶段",
+    kindContact: "联系方式",
     kindItem: "内容",
   },
   explore: {
@@ -122,6 +130,15 @@ export const zh = {
       inProgress: "进行中",
       planned: "计划中",
     },
+    statusLabel: "阶段状态",
+    addStage: "添加阶段",
+    removeStage: "移除阶段",
+    removeStageConfirm: "确定移除此学习阶段？可在回收站恢复。",
+    newStageTitle: "新阶段",
+    newStageBody: "写一段阶段说明…",
+    stageTitlePlaceholder: "阶段标题",
+    stageBodyPlaceholder: "阶段说明",
+    topicsPlaceholder: "主题（用逗号分隔）",
   },
   blog: {
     title: "知识星球",
@@ -134,11 +151,41 @@ export const zh = {
     subtitle: "从实验到落地，记录每一个构建",
     viewProject: "查看详情",
     tech: "技术栈",
+    addProject: "添加项目",
+    removeProject: "移除项目",
+    removeProjectConfirm: "确定移除此项目？可在回收站恢复。",
+    newProjectTitle: "新项目",
+    newProjectBody: "写一段项目说明…",
+    titlePlaceholder: "项目名称",
+    bodyPlaceholder: "项目说明",
+    linkPlaceholder: "分享链接（可选）",
+    addField: "添加栏目",
+    removeField: "移除栏目",
+    removeFieldConfirm: "确定移除此栏目？",
+    newFieldLabel: "新栏目",
+    newFieldValue: "填写内容…",
+    fieldLabelPlaceholder: "栏目标题",
+    fieldValuePlaceholder: "栏目内容",
+    tagsPlaceholder: "技术栈（用逗号分隔）",
+    githubPlaceholder: "GitHub 链接（可选）",
+    demoPlaceholder: "演示链接（可选）",
   },
   thoughts: {
     title: "思考与灵感",
     subtitle: "关于学习、创作与成长的随想",
     back: "返回思考与灵感",
+  },
+  posts: {
+    addPost: "添加文章",
+    removePost: "移除文章",
+    removePostConfirm: "确定移除此文章？可在回收站恢复。",
+    newPostTitle: "新文章",
+    newPostExcerpt: "写一段摘要…",
+    newPostBody: "写正文内容…",
+    titlePlaceholder: "文章标题",
+    excerptPlaceholder: "摘要",
+    bodyPlaceholder: "正文（支持 Markdown）",
+    tagsPlaceholder: "标签（用逗号分隔）",
   },
   contact: {
     title: "联系方式",
@@ -146,11 +193,19 @@ export const zh = {
     email: "邮箱",
     github: "GitHub",
     note: "如有合作意向或问题反馈，欢迎通过以下方式联系。",
+    addLink: "添加联系方式",
+    removeLink: "移除联系方式",
+    removeLinkConfirm: "确定移除此联系方式？可在回收站恢复。",
+    newLinkLabel: "新联系方式",
+    newLinkValue: "填写链接或账号…",
+    labelPlaceholder: "名称",
+    valuePlaceholder: "邮箱 / 链接 / 账号",
   },
   common: {
     backToExplore: "返回探索中心",
     confirm: "确定",
     cancel: "取消",
+    done: "完成",
   },
   shareCard: {
     open: "制作名片",
@@ -173,6 +228,9 @@ export const zh = {
     copyFallback: "当前浏览器不支持复制图片，已改为下载",
     failed: "生成失败，请重试",
     fieldIntro: "简介",
+    fieldExcerpt: "摘要",
+    fieldBody: "正文",
+    fieldTags: "标签",
     custom: "自定义",
     importBackground: "导入背景",
     clearBackground: "清除背景",
@@ -241,6 +299,9 @@ export type Dictionary = {
     addModuleHint: string;
     createCustomModule: string;
     cancelAdd: string;
+    addContent: string;
+    addContentHint: string;
+    addContentBack: string;
     removeModule: string;
     removeModuleConfirm: string;
     moduleManageHint: string;
@@ -274,6 +335,11 @@ export type Dictionary = {
     deleteConfirm: string;
     kindModule: string;
     kindCustomModule: string;
+    kindSection: string;
+    kindProject: string;
+    kindPost: string;
+    kindRoadmap: string;
+    kindContact: string;
     kindItem: string;
   };
   explore: {
@@ -301,6 +367,15 @@ export type Dictionary = {
     title: string;
     subtitle: string;
     status: Record<"completed" | "inProgress" | "planned", string>;
+    statusLabel: string;
+    addStage: string;
+    removeStage: string;
+    removeStageConfirm: string;
+    newStageTitle: string;
+    newStageBody: string;
+    stageTitlePlaceholder: string;
+    stageBodyPlaceholder: string;
+    topicsPlaceholder: string;
   };
   blog: {
     title: string;
@@ -313,6 +388,24 @@ export type Dictionary = {
     subtitle: string;
     viewProject: string;
     tech: string;
+    addProject: string;
+    removeProject: string;
+    removeProjectConfirm: string;
+    newProjectTitle: string;
+    newProjectBody: string;
+    titlePlaceholder: string;
+    bodyPlaceholder: string;
+    linkPlaceholder: string;
+    addField: string;
+    removeField: string;
+    removeFieldConfirm: string;
+    newFieldLabel: string;
+    newFieldValue: string;
+    fieldLabelPlaceholder: string;
+    fieldValuePlaceholder: string;
+    tagsPlaceholder: string;
+    githubPlaceholder: string;
+    demoPlaceholder: string;
   };
   thoughts: {
     title: string;
@@ -325,8 +418,27 @@ export type Dictionary = {
     email: string;
     github: string;
     note: string;
+    addLink: string;
+    removeLink: string;
+    removeLinkConfirm: string;
+    newLinkLabel: string;
+    newLinkValue: string;
+    labelPlaceholder: string;
+    valuePlaceholder: string;
   };
-  common: { backToExplore: string; confirm: string; cancel: string };
+  common: { backToExplore: string; confirm: string; cancel: string; done: string };
+  posts: {
+    addPost: string;
+    removePost: string;
+    removePostConfirm: string;
+    newPostTitle: string;
+    newPostExcerpt: string;
+    newPostBody: string;
+    titlePlaceholder: string;
+    excerptPlaceholder: string;
+    bodyPlaceholder: string;
+    tagsPlaceholder: string;
+  };
   shareCard: {
     open: string;
     title: string;
@@ -348,6 +460,9 @@ export type Dictionary = {
     copyFallback: string;
     failed: string;
     fieldIntro: string;
+    fieldExcerpt: string;
+    fieldBody: string;
+    fieldTags: string;
     custom: string;
     importBackground: string;
     clearBackground: string;

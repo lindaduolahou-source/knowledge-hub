@@ -1,40 +1,61 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail } from "lucide-react";
+import { Link2, Mail } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EditableModuleField } from "@/components/EditableModuleField";
+import {
+  CONTACT_LINKS_EVENT,
+  contactLabelKey,
+  contactValueHref,
+  contactValueKey,
+  createContactLink,
+  DEFAULT_CONTACT_LINKS,
+  loadContactLinks,
+  removeContactLink,
+  type ContactLinkDef,
+} from "@/lib/contact-links";
 import {
   ensureCrossLocaleModuleContent,
   MODULE_CONTENT_EVENT,
   resolveModuleContent,
-  type ModuleContentKey,
+  saveModuleContent,
 } from "@/lib/module-content";
 
-const DEFAULTS: { email: string; github: string } = {
+const VALUE_DEFAULTS: Record<"email" | "github", string> = {
   email: "hello@example.com",
   github: "github.com/yourname",
 };
 
-function toHref(kind: "email" | "github", value: string) {
-  const v = value.trim();
-  if (!v) return undefined;
-  if (kind === "email") {
-    return v.startsWith("mailto:") ? v : `mailto:${v}`;
-  }
-  if (v.startsWith("http://") || v.startsWith("https://")) return v;
-  return `https://${v.replace(/^\/+/, "")}`;
-}
-
 interface ContactEditableBodyProps {
   locale: Locale;
   dict: Dictionary;
+  hideAdd?: boolean;
 }
 
-export function ContactEditableBody({ locale, dict }: ContactEditableBodyProps) {
-  const [email, setEmail] = useState(DEFAULTS.email);
-  const [github, setGithub] = useState(DEFAULTS.github);
+export function ContactEditableBody({
+  locale,
+  dict,
+  hideAdd = false,
+}: ContactEditableBodyProps) {
+  const [links, setLinks] = useState<ContactLinkDef[]>(DEFAULT_CONTACT_LINKS);
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [ready, setReady] = useState(false);
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+
+  function labelDefault(link: ContactLinkDef) {
+    if (link.kind === "email") return dict.contact.email;
+    if (link.kind === "github") return dict.contact.github;
+    return dict.contact.newLinkLabel;
+  }
+
+  function valueDefault(link: ContactLinkDef) {
+    if (link.kind === "email") return VALUE_DEFAULTS.email;
+    if (link.kind === "github") return VALUE_DEFAULTS.github;
+    return dict.contact.newLinkValue;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -42,10 +63,19 @@ export function ContactEditableBody({ locale, dict }: ContactEditableBodyProps) 
     async function refresh() {
       await ensureCrossLocaleModuleContent();
       if (cancelled) return;
-      setEmail(resolveModuleContent(locale, "contact:email", DEFAULTS.email));
-      setGithub(
-        resolveModuleContent(locale, "contact:github", DEFAULTS.github),
-      );
+      const nextLinks = loadContactLinks();
+      const nextValues: Record<string, string> = {};
+      for (const link of nextLinks) {
+        const key = contactValueKey(link.id, link.kind);
+        nextValues[key] = resolveModuleContent(
+          locale,
+          key,
+          valueDefault(link),
+        );
+      }
+      setLinks(nextLinks);
+      setValues(nextValues);
+      setReady(true);
     }
 
     void refresh();
@@ -56,23 +86,55 @@ export function ContactEditableBody({ locale, dict }: ContactEditableBodyProps) 
       void refresh();
     }
 
+    window.addEventListener(CONTACT_LINKS_EVENT, onUpdate);
     window.addEventListener(MODULE_CONTENT_EVENT, onUpdate);
     window.addEventListener("storage", onUpdate);
     return () => {
       cancelled = true;
+      window.removeEventListener(CONTACT_LINKS_EVENT, onUpdate);
       window.removeEventListener(MODULE_CONTENT_EVENT, onUpdate);
       window.removeEventListener("storage", onUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
 
-  const cards: {
-    key: "email" | "github";
-    fieldKey: ModuleContentKey;
-    value: string;
-  }[] = [
-    { key: "email", fieldKey: "contact:email", value: email },
-    { key: "github", fieldKey: "contact:github", value: github },
-  ];
+  async function handleAdd() {
+    const { links: next, id } = createContactLink(links);
+    await saveModuleContent(
+      locale,
+      contactLabelKey(id, "custom")!,
+      dict.contact.newLinkLabel,
+    );
+    await saveModuleContent(
+      locale,
+      contactValueKey(id, "custom"),
+      dict.contact.newLinkValue,
+    );
+    setLinks(next);
+  }
+
+  function confirmRemove() {
+    if (!pendingRemoveId) return;
+    // Keep at least one contact card.
+    if (links.length <= 1) {
+      setPendingRemoveId(null);
+      return;
+    }
+    setLinks(removeContactLink(links, pendingRemoveId));
+    setPendingRemoveId(null);
+  }
+
+  if (!ready) {
+    return (
+      <div className="space-y-8" aria-hidden>
+        <div className="h-16 max-w-xl rounded-lg bg-white/[0.03]" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="h-28 rounded-xl border border-white/10 bg-white/[0.03]" />
+          <div className="h-28 rounded-xl border border-white/10 bg-white/[0.03]" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -87,41 +149,103 @@ export function ContactEditableBody({ locale, dict }: ContactEditableBodyProps) 
         className="mb-8 max-w-xl"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {cards.map(({ key, fieldKey, value }) => {
-          const href = toHref(key, value);
-          return (
-            <div
-              key={key}
-              className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/20"
-            >
-              <a
-                href={href}
-                target={key === "github" ? "_blank" : undefined}
-                rel={key === "github" ? "noopener noreferrer" : undefined}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/5 transition-colors hover:bg-white/10"
-                aria-label={dict.contact[key]}
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {links.map((link) => {
+            const valueKey = contactValueKey(link.id, link.kind);
+            const labelKey = contactLabelKey(link.id, link.kind);
+            const liveValue = values[valueKey] ?? valueDefault(link);
+            const href = contactValueHref(link.kind, liveValue);
+            const Icon = link.kind === "email" ? Mail : Link2;
+            const canRemove = links.length > 1;
+
+            return (
+              <div
+                key={link.id}
+                className="group/item flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/20"
               >
-                <Mail size={18} className="text-accent" />
-              </a>
-              <div className="min-w-0 flex-1">
-                <p className="mb-1 text-xs text-muted">{dict.contact[key]}</p>
-                <EditableModuleField
-                  locale={locale}
-                  fieldKey={fieldKey}
-                  defaultText={DEFAULTS[key]}
-                  editHint={dict.home.noteEdit}
-                  placeholder={dict.home.pagePlaceholder}
-                  saveHint={dict.home.pageSaveHint}
-                  rows={2}
-                  commitOnEnter
-                  muted={false}
-                />
+                <a
+                  href={href}
+                  target={link.kind === "email" ? undefined : "_blank"}
+                  rel={
+                    link.kind === "email" ? undefined : "noopener noreferrer"
+                  }
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/5 transition-colors hover:bg-white/10"
+                  aria-label={labelDefault(link)}
+                >
+                  <Icon size={18} className="text-accent" />
+                </a>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-start gap-1">
+                    <div className="min-w-0 flex-1">
+                      {labelKey ? (
+                        <EditableModuleField
+                          locale={locale}
+                          fieldKey={labelKey}
+                          defaultText={labelDefault(link)}
+                          editHint={dict.home.noteEdit}
+                          placeholder={dict.contact.labelPlaceholder}
+                          saveHint={dict.home.noteSaveHint}
+                          rows={1}
+                          commitOnEnter
+                          muted
+                          textClassName="text-xs"
+                        />
+                      ) : (
+                        <p className="text-xs text-muted">
+                          {labelDefault(link)}
+                        </p>
+                      )}
+                    </div>
+                    {canRemove && (
+                      <button
+                        type="button"
+                        onClick={() => setPendingRemoveId(link.id)}
+                        className="shrink-0 cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
+                        aria-label={dict.contact.removeLink}
+                        title={dict.contact.removeLink}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <EditableModuleField
+                    locale={locale}
+                    fieldKey={valueKey}
+                    defaultText={valueDefault(link)}
+                    editHint={dict.home.noteEdit}
+                    placeholder={dict.contact.valuePlaceholder}
+                    saveHint={dict.home.pageSaveHint}
+                    rows={2}
+                    commitOnEnter
+                    muted={false}
+                  />
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {!hideAdd && (
+          <button
+            type="button"
+            onClick={() => void handleAdd()}
+            className="w-full cursor-pointer rounded-xl border border-dashed border-white/20 px-4 py-3 text-left text-sm text-white/45 transition-colors hover:border-white/35 hover:text-white/80"
+          >
+            <span className="mr-2 text-base text-white/50">+</span>
+            {dict.contact.addLink}
+          </button>
+        )}
       </div>
+
+      <ConfirmDialog
+        open={pendingRemoveId !== null}
+        message={dict.contact.removeLinkConfirm}
+        confirmLabel={dict.common.confirm}
+        cancelLabel={dict.common.cancel}
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemoveId(null)}
+      />
     </>
   );
 }

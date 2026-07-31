@@ -1,8 +1,9 @@
 import { BackToExplore } from "@/components/BackToExplore";
-import { ShareCardLauncher } from "@/components/ShareCardLauncher";
+import { ModuleShareCardLauncher } from "@/components/ModuleShareCardLauncher";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { ModuleConfig } from "@/lib/modules";
+import type { ModuleSectionDefault } from "@/lib/module-sections";
 import type { ShareCardFieldDef } from "@/lib/share-card";
 
 interface ModulePageChromeProps {
@@ -12,6 +13,8 @@ interface ModulePageChromeProps {
   backLabel: string;
   titleDefault: string;
   shareFields: ShareCardFieldDef[];
+  /** Same section defaults as EditableModuleSections, so share card stays in sync. */
+  sectionDefaults?: ModuleSectionDefault[];
 }
 
 export function ModulePageChrome({
@@ -21,18 +24,26 @@ export function ModulePageChrome({
   backLabel,
   titleDefault,
   shareFields,
+  sectionDefaults = [],
 }: ModulePageChromeProps) {
   return (
-    <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-      <BackToExplore locale={locale} label={backLabel} module={module} />
-      <ShareCardLauncher
+    <>
+      <BackToExplore
+        locale={locale}
+        label={backLabel}
+        module={module}
+        floating
+      />
+      <ModuleShareCardLauncher
         locale={locale}
         dict={dict}
         moduleId={module.id}
         moduleIcon={module.icon}
         titleDefault={titleDefault}
-        fields={shareFields}
+        baseFields={shareFields}
+        sectionDefaults={sectionDefaults}
+        floating
       />
-    </div>
+    </>
   );
 }

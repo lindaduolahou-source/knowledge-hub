@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MarkdownContent } from "@/components/MarkdownContent";
+import { ArticleShareCard } from "@/components/ArticleShareCard";
+import { EditableArticlePage } from "@/components/EditableArticlePage";
 import { isValidLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getThought, getThoughts } from "@/lib/content";
@@ -19,34 +19,41 @@ export default async function ThoughtPage({
   const { locale, slug } = await params;
   if (!isValidLocale(locale)) notFound();
 
-  const thought = getThought(locale as Locale, slug);
-  if (!thought) notFound();
-
-  const dict = getDictionary(locale as Locale);
+  const loc = locale as Locale;
+  const dict = getDictionary(loc);
+  const filePost = getThought(loc, slug);
+  const post =
+    filePost ??
+    ({
+      slug,
+      title: "",
+      date: new Date().toISOString().slice(0, 10),
+      excerpt: "",
+      tags: [],
+      locale: loc,
+      content: "",
+    } as const);
 
   return (
-    <article>
-      <Link
-        href={`/${locale}/thoughts`}
-        className="mb-8 inline-block font-mono text-xs text-accent hover:underline"
-      >
-        ← {dict.thoughts.back}
-      </Link>
-      <header className="mb-8 border-b border-border pb-8">
-        <div className="mb-4 flex flex-wrap items-center gap-3 font-mono text-xs text-muted">
-          <time dateTime={thought.date}>{thought.date}</time>
-          {thought.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded bg-accent/10 px-1.5 py-0.5 text-accent"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-        <h1 className="text-3xl font-medium tracking-tight">{thought.title}</h1>
-      </header>
-      <MarkdownContent content={thought.content} />
-    </article>
+    <>
+      <ArticleShareCard
+        locale={loc}
+        dict={dict}
+        moduleId="thoughts"
+        slug={post.slug}
+        title={post.title || dict.posts.titlePlaceholder}
+        excerpt={post.excerpt}
+        content={post.content}
+        tags={post.tags}
+      />
+      <EditableArticlePage
+        locale={loc}
+        dict={dict}
+        collection="thoughts"
+        hrefPrefix="thoughts"
+        backLabel={dict.thoughts.back}
+        post={post}
+      />
+    </>
   );
 }

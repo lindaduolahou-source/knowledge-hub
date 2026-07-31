@@ -1,5 +1,13 @@
+import type { Locale } from "@/i18n/config";
+import { locales } from "@/i18n/config";
 import type { ModuleId } from "./modules";
+import {
+  purgeModuleContentKeys,
+  resolveModuleContent,
+  setModuleContentLocal,
+} from "./module-content";
 import { getPublishedModuleSections } from "./published-site";
+import { pushSectionToTrash } from "./trash";
 
 const STORAGE_KEY = "knowledge-hub:module-sections";
 export const MODULE_SECTIONS_EVENT = "knowledge-hub:module-sections-updated";
@@ -110,7 +118,65 @@ export function removeModuleSection(
   current: ModuleSectionDef[],
   sectionId: string,
 ): ModuleSectionDef[] {
+  const section = current.find((item) => item.id === sectionId);
+  if (section) {
+    const titleKey = sectionTitleKey(moduleId, sectionId);
+    const bodyKey = sectionBodyKey(moduleId, sectionId);
+    const texts: Partial<
+      Record<Locale, { title: string; body: string }>
+    > = {};
+    for (const locale of locales) {
+      texts[locale] = {
+        title: resolveModuleContent(locale, titleKey, ""),
+        body: resolveModuleContent(locale, bodyKey, ""),
+      };
+    }
+    const display =
+      texts.zh?.title?.trim() ||
+      texts.en?.title?.trim() ||
+      sectionId;
+    pushSectionToTrash({
+      moduleId,
+      title: display,
+      section,
+      texts,
+    });
+  }
   const sections = current.filter((item) => item.id !== sectionId);
   saveModuleSections(moduleId, sections);
   return sections;
+}
+
+export function restoreModuleSection(
+  moduleId: string,
+  section: ModuleSectionDef,
+  texts: Partial<Record<Locale, { title: string; body: string }>>,
+): boolean {
+  const current = loadModuleSections(moduleId, []);
+  if (current.some((item) => item.id === section.id)) return true;
+
+  saveModuleSections(moduleId, [
+    ...current,
+    { id: section.id, variant: section.variant },
+  ]);
+
+  const titleKey = sectionTitleKey(moduleId, section.id);
+  const bodyKey = sectionBodyKey(moduleId, section.id);
+  for (const locale of locales) {
+    const pair = texts[locale];
+    if (!pair) continue;
+    setModuleContentLocal(locale, titleKey, pair.title);
+    setModuleContentLocal(locale, bodyKey, pair.body);
+  }
+  return true;
+}
+
+export function purgeModuleSectionContent(
+  moduleId: string,
+  sectionId: string,
+) {
+  purgeModuleContentKeys([
+    sectionTitleKey(moduleId, sectionId),
+    sectionBodyKey(moduleId, sectionId),
+  ]);
 }

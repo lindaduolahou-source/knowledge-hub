@@ -43,6 +43,8 @@ interface ShareCardLauncherProps {
   fields: ShareCardFieldDef[];
   /** Match cosmic header styling on home/explore. */
   immersive?: boolean;
+  /** Pin the open button to the viewport (module pages). */
+  floating?: boolean;
 }
 
 function readSelection(): string {
@@ -94,6 +96,7 @@ export function ShareCardLauncher({
   titleDefault,
   fields,
   immersive = false,
+  floating = false,
 }: ShareCardLauncherProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -1207,30 +1210,42 @@ export function ShareCardLauncher({
         )
       : null;
 
+  const openButton = (
+    <button
+      type="button"
+      onMouseDown={() => {
+        const sel = readSelection();
+        setSelectionText(sel);
+        setIncludeSelection(Boolean(sel));
+      }}
+      onClick={() => {
+        setStatus(null);
+        loadShareState();
+        setOpen(true);
+      }}
+      className={
+        immersive
+          ? "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1.5 text-xs text-white shadow-lg backdrop-blur-md transition-colors hover:bg-white/15"
+          : floating
+            ? "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border/80 bg-background/90 px-3 py-1.5 text-xs text-foreground shadow-lg backdrop-blur-md transition-colors hover:border-accent/40 hover:bg-surface"
+            : "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted transition-colors hover:border-accent/40 hover:bg-surface hover:text-foreground"
+      }
+      title={dict.shareCard.open}
+    >
+      <Share2 size={13} strokeWidth={1.75} />
+      {dict.shareCard.open}
+    </button>
+  );
+
   return (
     <>
-      <button
-        type="button"
-        onMouseDown={() => {
-          const sel = readSelection();
-          setSelectionText(sel);
-          setIncludeSelection(Boolean(sel));
-        }}
-        onClick={() => {
-          setStatus(null);
-          loadShareState();
-          setOpen(true);
-        }}
-        className={
-          immersive
-            ? "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/35 px-3 py-1.5 text-xs text-white transition-colors hover:bg-white/15"
-            : "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted transition-colors hover:border-accent/40 hover:bg-surface hover:text-foreground"
-        }
-        title={dict.shareCard.open}
-      >
-        <Share2 size={13} strokeWidth={1.75} />
-        {dict.shareCard.open}
-      </button>
+      {floating ? (
+        <div className="pointer-events-none fixed top-[4.75rem] right-4 z-40 sm:right-6">
+          <div className="pointer-events-auto">{openButton}</div>
+        </div>
+      ) : (
+        openButton
+      )}
       {dialog}
       <ConfirmDialog
         open={exitPromptOpen}

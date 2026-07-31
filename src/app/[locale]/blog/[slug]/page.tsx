@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MarkdownContent } from "@/components/MarkdownContent";
+import { ArticleShareCard } from "@/components/ArticleShareCard";
+import { EditableArticlePage } from "@/components/EditableArticlePage";
 import { isValidLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPost, getPosts } from "@/lib/content";
@@ -19,34 +19,41 @@ export default async function BlogPostPage({
   const { locale, slug } = await params;
   if (!isValidLocale(locale)) notFound();
 
-  const post = getPost(locale as Locale, slug);
-  if (!post) notFound();
-
-  const dict = getDictionary(locale as Locale);
+  const loc = locale as Locale;
+  const dict = getDictionary(loc);
+  const filePost = getPost(loc, slug);
+  const post =
+    filePost ??
+    ({
+      slug,
+      title: "",
+      date: new Date().toISOString().slice(0, 10),
+      excerpt: "",
+      tags: [],
+      locale: loc,
+      content: "",
+    } as const);
 
   return (
-    <article>
-      <Link
-        href={`/${locale}/blog`}
-        className="mb-8 inline-block font-mono text-xs text-accent hover:underline"
-      >
-        ← {dict.blog.back}
-      </Link>
-      <header className="mb-8 border-b border-border pb-8">
-        <div className="mb-4 flex flex-wrap items-center gap-3 font-mono text-xs text-muted">
-          <time dateTime={post.date}>{post.date}</time>
-          {post.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded bg-accent/10 px-1.5 py-0.5 text-accent"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-        <h1 className="text-3xl font-medium tracking-tight">{post.title}</h1>
-      </header>
-      <MarkdownContent content={post.content} />
-    </article>
+    <>
+      <ArticleShareCard
+        locale={loc}
+        dict={dict}
+        moduleId="knowledge"
+        slug={post.slug}
+        title={post.title || dict.posts.titlePlaceholder}
+        excerpt={post.excerpt}
+        content={post.content}
+        tags={post.tags}
+      />
+      <EditableArticlePage
+        locale={loc}
+        dict={dict}
+        collection="blog"
+        hrefPrefix="blog"
+        backLabel={dict.blog.back}
+        post={post}
+      />
+    </>
   );
 }

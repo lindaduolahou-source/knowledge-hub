@@ -1,4 +1,10 @@
+import type { Locale } from "@/i18n/config";
+import type { RoadmapItem } from "@/lib/content";
+import type { ContactLinkDef } from "./contact-links";
 import type { CustomModuleMeta } from "./module-layout";
+import type { ModuleSectionDef } from "./module-sections";
+import type { EditablePost, PostCollection } from "./post-edits";
+import type { EditableProject } from "./project-edits";
 
 const STORAGE_KEY = "knowledge-hub:trash";
 export const TRASH_EVENT = "knowledge-hub:trash-updated";
@@ -14,7 +20,58 @@ export type TrashModuleItem = {
   deletedAt: number;
 };
 
-export type TrashItem = TrashModuleItem;
+export type TrashSectionItem = {
+  id: string;
+  kind: "section";
+  moduleId: string;
+  title: string;
+  section: ModuleSectionDef;
+  texts: Partial<Record<Locale, { title: string; body: string }>>;
+  deletedAt: number;
+};
+
+export type TrashProjectItem = {
+  id: string;
+  kind: "project";
+  moduleId: string;
+  title: string;
+  snapshot: Partial<Record<Locale, EditableProject>>;
+  deletedAt: number;
+};
+
+export type TrashPostItem = {
+  id: string;
+  kind: "post";
+  collection: PostCollection;
+  title: string;
+  snapshot: Partial<Record<Locale, EditablePost>>;
+  deletedAt: number;
+};
+
+export type TrashRoadmapStageItem = {
+  id: string;
+  kind: "roadmap";
+  title: string;
+  snapshot: Partial<Record<Locale, RoadmapItem>>;
+  deletedAt: number;
+};
+
+export type TrashContactItem = {
+  id: string;
+  kind: "contact";
+  title: string;
+  link: ContactLinkDef;
+  texts: Partial<Record<Locale, { label: string; value: string }>>;
+  deletedAt: number;
+};
+
+export type TrashItem =
+  | TrashModuleItem
+  | TrashSectionItem
+  | TrashProjectItem
+  | TrashPostItem
+  | TrashRoadmapStageItem
+  | TrashContactItem;
 
 type TrashState = {
   items: TrashItem[];
@@ -30,16 +87,37 @@ function defaultState(): TrashState {
   return { items: [], dismissedBuiltins: [] };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
 function isTrashItem(value: unknown): value is TrashItem {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Record<string, unknown>;
-  return (
-    item.kind === "module" &&
-    typeof item.id === "string" &&
-    typeof item.moduleId === "string" &&
-    typeof item.title === "string" &&
-    typeof item.deletedAt === "number"
-  );
+  if (!isRecord(value)) return false;
+  if (typeof value.id !== "string" || typeof value.deletedAt !== "number") {
+    return false;
+  }
+  if (typeof value.title !== "string") return false;
+
+  switch (value.kind) {
+    case "module":
+      return typeof value.moduleId === "string";
+    case "section":
+      return (
+        typeof value.moduleId === "string" &&
+        isRecord(value.section) &&
+        typeof value.section.id === "string"
+      );
+    case "project":
+      return typeof value.moduleId === "string" && isRecord(value.snapshot);
+    case "post":
+      return typeof value.collection === "string" && isRecord(value.snapshot);
+    case "roadmap":
+      return isRecord(value.snapshot);
+    case "contact":
+      return isRecord(value.link) && typeof value.link.id === "string";
+    default:
+      return false;
+  }
 }
 
 function loadState(): TrashState {
@@ -62,7 +140,9 @@ function loadState(): TrashState {
     return {
       items: Array.isArray(obj.items) ? obj.items.filter(isTrashItem) : [],
       dismissedBuiltins: Array.isArray(obj.dismissedBuiltins)
-        ? obj.dismissedBuiltins.filter((id): id is string => typeof id === "string")
+        ? obj.dismissedBuiltins.filter(
+            (id): id is string => typeof id === "string",
+          )
         : [],
     };
   } catch {
@@ -73,6 +153,19 @@ function loadState(): TrashState {
 function writeState(state: TrashState) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   emit();
+}
+
+function newTrashId() {
+  return `trash-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function prependItem(entry: TrashItem) {
+  const state = loadState();
+  writeState({
+    items: [entry, ...state.items],
+    dismissedBuiltins: state.dismissedBuiltins,
+  });
+  return entry;
 }
 
 export function loadTrash(): TrashItem[] {
@@ -105,7 +198,7 @@ export function pushModuleToTrash(input: {
     (item) => !(item.kind === "module" && item.moduleId === input.moduleId),
   );
   const entry: TrashModuleItem = {
-    id: `trash-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    id: newTrashId(),
     kind: "module",
     moduleId: input.moduleId,
     title: input.title.trim() || input.moduleId,
@@ -122,7 +215,85 @@ export function pushModuleToTrash(input: {
   return entry;
 }
 
-export function removeTrashItem(id: string, options?: { dismissBuiltin?: boolean }) {
+export function pushSectionToTrash(input: {
+  moduleId: string;
+  title: string;
+  section: ModuleSectionDef;
+  texts: Partial<Record<Locale, { title: string; body: string }>>;
+}): TrashSectionItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "section",
+    moduleId: input.moduleId,
+    title: input.title.trim() || input.section.id,
+    section: { id: input.section.id, variant: input.section.variant },
+    texts: input.texts,
+    deletedAt: Date.now(),
+  }) as TrashSectionItem;
+}
+
+export function pushProjectToTrash(input: {
+  moduleId: string;
+  title: string;
+  snapshot: Partial<Record<Locale, EditableProject>>;
+}): TrashProjectItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "project",
+    moduleId: input.moduleId,
+    title: input.title.trim() || "project",
+    snapshot: input.snapshot,
+    deletedAt: Date.now(),
+  }) as TrashProjectItem;
+}
+
+export function pushPostToTrash(input: {
+  collection: PostCollection;
+  title: string;
+  snapshot: Partial<Record<Locale, EditablePost>>;
+}): TrashPostItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "post",
+    collection: input.collection,
+    title: input.title.trim() || "post",
+    snapshot: input.snapshot,
+    deletedAt: Date.now(),
+  }) as TrashPostItem;
+}
+
+export function pushRoadmapStageToTrash(input: {
+  title: string;
+  snapshot: Partial<Record<Locale, RoadmapItem>>;
+}): TrashRoadmapStageItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "roadmap",
+    title: input.title.trim() || "stage",
+    snapshot: input.snapshot,
+    deletedAt: Date.now(),
+  }) as TrashRoadmapStageItem;
+}
+
+export function pushContactToTrash(input: {
+  title: string;
+  link: ContactLinkDef;
+  texts: Partial<Record<Locale, { label: string; value: string }>>;
+}): TrashContactItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "contact",
+    title: input.title.trim() || input.link.id,
+    link: { id: input.link.id, kind: input.link.kind },
+    texts: input.texts,
+    deletedAt: Date.now(),
+  }) as TrashContactItem;
+}
+
+export function removeTrashItem(
+  id: string,
+  options?: { dismissBuiltin?: boolean },
+) {
   const state = loadState();
   const target = state.items.find((item) => item.id === id);
   const items = state.items.filter((item) => item.id !== id);
@@ -154,7 +325,10 @@ export function clearTrash(options?: { dismissRemainingBuiltins?: boolean }) {
   let dismissedBuiltins = state.dismissedBuiltins;
   if (options?.dismissRemainingBuiltins) {
     const extra = state.items
-      .filter((item) => item.kind === "module" && !item.custom)
+      .filter(
+        (item): item is TrashModuleItem =>
+          item.kind === "module" && !item.custom,
+      )
       .map((item) => item.moduleId);
     dismissedBuiltins = Array.from(new Set([...dismissedBuiltins, ...extra]));
   }
