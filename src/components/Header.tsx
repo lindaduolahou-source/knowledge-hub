@@ -9,6 +9,7 @@ import { isBuiltinModuleId } from "@/lib/modules";
 import { useModuleLayout } from "@/hooks/useModuleLayout";
 import { useModuleTitle } from "@/hooks/useModuleTitle";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ShareCardModulePicker } from "./ShareCardModulePicker";
 import { TrashButton } from "./TrashButton";
 
 interface HeaderProps {
@@ -54,6 +55,8 @@ export function Header({ locale, dict }: HeaderProps) {
   const immersive = isLanding || isExplore;
 
   const visibleNav = navItems.filter((item) => {
+    // Explore is shown as a dedicated action button beside the share-card control.
+    if (item.key === "explore") return false;
     if (!item.moduleId) return true;
     if (!ready) return isBuiltinModuleId(item.moduleId);
     return activeIds.has(item.moduleId);
@@ -109,7 +112,7 @@ export function Header({ locale, dict }: HeaderProps) {
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <Link
             href={`/${locale}/explore`}
-            className={`cursor-pointer rounded-full px-3 py-1.5 text-xs transition-colors duration-200 lg:hidden ${
+            className={`cursor-pointer rounded-full px-3 py-1.5 text-xs transition-colors duration-200 ${
               immersive
                 ? "border border-white/35 text-white hover:bg-white hover:text-black"
                 : "bg-accent/10 text-accent hover:bg-accent/20"
@@ -117,6 +120,11 @@ export function Header({ locale, dict }: HeaderProps) {
           >
             {dict.nav.explore}
           </Link>
+          <ShareCardModulePicker
+            locale={locale}
+            dict={dict}
+            immersive={immersive}
+          />
           <TrashButton locale={locale} dict={dict} immersive={immersive} />
           <LanguageSwitcher locale={locale} />
         </div>

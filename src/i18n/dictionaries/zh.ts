@@ -156,6 +156,9 @@ export const zh = {
     open: "制作名片",
     title: "分享名片",
     close: "关闭",
+    pickModuleTitle: "选择模块",
+    pickModuleHint: "从目录选择模块，进入后制作名片",
+    pickModuleEmpty: "目录中暂无模块",
     selectHint: "选择内容",
     preview: "预览",
     previewEditHint: "点击预览文字可直接编辑",
@@ -170,6 +173,27 @@ export const zh = {
     copyFallback: "当前浏览器不支持复制图片，已改为下载",
     failed: "生成失败，请重试",
     fieldIntro: "简介",
+    custom: "自定义",
+    importBackground: "导入背景",
+    clearBackground: "清除背景",
+    importStickers: "导入贴纸",
+    clearStickers: "清除贴纸",
+    removeSticker: "移除贴纸",
+    stickerHint:
+      "选中贴纸后：拖动移动；用下方滑条或输入框调整旋转与缩放",
+    rotateSticker: "旋转",
+    scaleSticker: "缩放",
+    typography: "文字样式",
+    fontFamily: "字体",
+    titleSize: "标题字号",
+    bodySize: "正文字号",
+    titleColor: "标题颜色",
+    bodyColor: "正文颜色",
+    fontLibraryHint: "字体来自 Google Fonts 免费字库，选择后按需加载",
+    saveChanges: "保存修改",
+    saved: "已保存",
+    unsavedConfirm: "有未保存的修改，是否保存？",
+    discardChanges: "不保存",
   },
   footer: {
     builtWith: "Built with Next.js",
@@ -307,6 +331,9 @@ export type Dictionary = {
     open: string;
     title: string;
     close: string;
+    pickModuleTitle: string;
+    pickModuleHint: string;
+    pickModuleEmpty: string;
     selectHint: string;
     preview: string;
     previewEditHint: string;
@@ -321,6 +348,26 @@ export type Dictionary = {
     copyFallback: string;
     failed: string;
     fieldIntro: string;
+    custom: string;
+    importBackground: string;
+    clearBackground: string;
+    importStickers: string;
+    clearStickers: string;
+    removeSticker: string;
+    stickerHint: string;
+    rotateSticker: string;
+    scaleSticker: string;
+    typography: string;
+    fontFamily: string;
+    titleSize: string;
+    bodySize: string;
+    titleColor: string;
+    bodyColor: string;
+    fontLibraryHint: string;
+    saveChanges: string;
+    saved: string;
+    unsavedConfirm: string;
+    discardChanges: string;
   };
   footer: { builtWith: string; copyright: string };
   publish: {
