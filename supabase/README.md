@@ -41,4 +41,10 @@
 
 ## 同步规则（`src/lib/cloud-sync.ts`）
 
-登录后：云端非空 → 覆盖本地；云端空 + 本地有 → 上传本地。未登录访客只看到代码默认内容，不读云端个人数据。
+**阶段 1（当前）**
+- 所有人（含未登录）进入网站时会读取 `site_stores` 公开默认内容
+- 仅站长邮箱登录后才会把编辑写入 `site_stores`
+
+**阶段 2（规划，见 `docs/APP_ROADMAP.md` + `user_stores.sql`）**
+- `site_stores`：官方默认
+- `user_stores`：每个登录用户自己的数据（按 `user_id` 隔离）

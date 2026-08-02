@@ -1,4 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { getSiteOwnerEmail } from "@/lib/supabase/env";
 
 /** localStorage keys that sync to Supabase `site_stores`. */
 export const CLOUD_SYNC_KEYS = [
@@ -22,6 +23,31 @@ export const CLOUD_SYNC_KEYS = [
 ] as const;
 
 export type CloudSyncKey = (typeof CLOUD_SYNC_KEYS)[number];
+
+/**
+ * Keys shown to everyone (visitors). Personal tool stores are omitted so
+ * visitors don't inherit the owner's trash / card vault.
+ */
+export const PUBLIC_DEFAULT_KEYS = [
+  "knowledge-hub:module-content:zh",
+  "knowledge-hub:module-content:en",
+  "knowledge-hub:toc-notes:zh",
+  "knowledge-hub:toc-notes:en",
+  "knowledge-hub:module-layout",
+  "knowledge-hub:module-sections",
+  "knowledge-hub:module-page-blocks",
+  "knowledge-hub:project-items",
+  "knowledge-hub:post-items",
+  "knowledge-hub:roadmap-items",
+  "knowledge-hub:mindmap-items",
+  "knowledge-hub:contact-links",
+] as const satisfies readonly CloudSyncKey[];
+
+export function isSiteOwner(user: User | null | undefined): boolean {
+  const owner = getSiteOwnerEmail();
+  if (!owner || !user?.email) return false;
+  return user.email.trim().toLowerCase() === owner;
+}
 
 /** Custom events that mean a synced store changed. */
 export const CLOUD_SYNC_EVENTS = [
@@ -109,12 +135,49 @@ export async function pushAllStores(
 }
 
 /**
- * On login: cloud wins when present; otherwise upload local.
- * Then UI refreshes from localStorage.
+ * Phase 1: anyone (including logged-out visitors) pulls official defaults
+ * from `site_stores` into localStorage so the product UI shows developer content.
+ */
+export async function pullPublicDefaults(
+  supabase: SupabaseClient,
+): Promise<{ error: string | null; pulled: number }> {
+  const { data, error } = await supabase
+    .from("site_stores")
+    .select("name, payload");
+
+  if (error) {
+    return { error: error.message, pulled: 0 };
+  }
+
+  const cloud = new Map(
+    (data ?? []).map((row) => [row.name as string, row.payload] as const),
+  );
+
+  let pulled = 0;
+  for (const name of PUBLIC_DEFAULT_KEYS) {
+    const cloudPayload = cloud.get(name);
+    if (cloudPayload === undefined || isEmptyPayload(cloudPayload)) continue;
+    writeLocal(name, cloudPayload);
+    pulled += 1;
+  }
+
+  if (pulled > 0) emitStoreRefresh();
+  return { error: null, pulled };
+}
+
+/**
+ * Owner login: cloud wins when present; otherwise upload local.
+ * Non-owners only receive public defaults (no write to site_stores).
  */
 export async function syncOnLogin(
   supabase: SupabaseClient,
+  user?: User | null,
 ): Promise<{ error: string | null; pulled: number; pushed: number }> {
+  if (user && !isSiteOwner(user)) {
+    const pulled = await pullPublicDefaults(supabase);
+    return { error: pulled.error, pulled: pulled.pulled, pushed: 0 };
+  }
+
   const { data, error } = await supabase
     .from("site_stores")
     .select("name, payload, updated_at");
