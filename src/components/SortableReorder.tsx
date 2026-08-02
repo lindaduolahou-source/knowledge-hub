@@ -23,6 +23,9 @@ type SortableContextValue = {
 
 const SortableContext = createContext<SortableContextValue | null>(null);
 
+/** Ensures only one nested SortableList owns an active drag. */
+let activeSortableOwner: symbol | null = null;
+
 interface SortableListProps {
   children: ReactNode;
   count: number;
@@ -39,6 +42,7 @@ export function SortableList({
   const itemsRef = useRef<Map<number, HTMLElement>>(new Map());
   const dragIndexRef = useRef<number | null>(null);
   const activePointerRef = useRef<number | null>(null);
+  const ownerIdRef = useRef(Symbol("sortable"));
   const onReorderRef = useRef(onReorder);
   const countRef = useRef(count);
 
@@ -84,6 +88,9 @@ export function SortableList({
   }, []);
 
   const endDrag = useCallback(() => {
+    if (activeSortableOwner === ownerIdRef.current) {
+      activeSortableOwner = null;
+    }
     activePointerRef.current = null;
     dragIndexRef.current = null;
     setDragIndex(null);
@@ -95,6 +102,7 @@ export function SortableList({
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();
+      activeSortableOwner = ownerIdRef.current;
       activePointerRef.current = event.pointerId;
       dragIndexRef.current = index;
       setDragIndex(index);
@@ -107,6 +115,7 @@ export function SortableList({
 
   useEffect(() => {
     function onPointerMove(event: PointerEvent) {
+      if (activeSortableOwner !== ownerIdRef.current) return;
       if (activePointerRef.current === null) return;
       if (event.pointerId !== activePointerRef.current) return;
       event.preventDefault();
@@ -119,6 +128,7 @@ export function SortableList({
     }
 
     function onPointerUp(event: PointerEvent) {
+      if (activeSortableOwner !== ownerIdRef.current) return;
       if (activePointerRef.current === null) return;
       if (event.pointerId !== activePointerRef.current) return;
       document.body.style.userSelect = "";

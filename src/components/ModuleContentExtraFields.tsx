@@ -5,6 +5,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EditableModuleField } from "@/components/EditableModuleField";
+import { DragHandle, SortableItem, SortableList } from "@/components/SortableReorder";
 import type { ExtraFieldRef } from "@/lib/extra-fields";
 
 interface ModuleContentExtraFieldsProps {
@@ -15,6 +16,7 @@ interface ModuleContentExtraFieldsProps {
   valueKey: (fieldId: string) => string;
   onAdd: () => void;
   onRemove: (fieldId: string) => void;
+  onReorder: (from: number, to: number) => void;
   accentColor?: string;
 }
 
@@ -26,56 +28,65 @@ export function ModuleContentExtraFields({
   valueKey,
   onAdd,
   onRemove,
+  onReorder,
   accentColor,
 }: ModuleContentExtraFieldsProps) {
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
   return (
     <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
-      {fields.map((field) => (
-        <div
-          key={field.id}
-          className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
-        >
-          <div className="mb-1 flex items-start gap-1">
-            <div className="min-w-0 flex-1">
+      <SortableList count={fields.length} onReorder={onReorder}>
+        <div className="space-y-2">
+          {fields.map((field, index) => (
+            <SortableItem
+              key={field.id}
+              index={index}
+              className="group/item rounded-lg border border-white/10 bg-white/[0.03] p-3"
+            >
+              <div className="mb-1 flex items-start gap-1">
+                <div className="min-w-0 flex-1">
+                  <EditableModuleField
+                    locale={locale}
+                    fieldKey={labelKey(field.id)}
+                    defaultText={dict.common.newFieldLabel}
+                    editHint={dict.home.noteEdit}
+                    placeholder={dict.common.fieldLabelPlaceholder}
+                    saveHint={dict.home.noteSaveHint}
+                    rows={1}
+                    commitOnEnter
+                    muted
+                    textClassName="text-xs"
+                    accentColor={accentColor}
+                  />
+                </div>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <DragHandle index={index} label={dict.common.reorder} />
+                  <button
+                    type="button"
+                    onClick={() => setPendingRemoveId(field.id)}
+                    className="cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
+                    aria-label={dict.common.removeField}
+                    title={dict.common.removeField}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
               <EditableModuleField
                 locale={locale}
-                fieldKey={labelKey(field.id)}
-                defaultText={dict.common.newFieldLabel}
+                fieldKey={valueKey(field.id)}
+                defaultText={dict.common.newFieldValue}
                 editHint={dict.home.noteEdit}
-                placeholder={dict.common.fieldLabelPlaceholder}
-                saveHint={dict.home.noteSaveHint}
-                rows={1}
-                commitOnEnter
-                muted
-                textClassName="text-xs"
+                placeholder={dict.common.fieldValuePlaceholder}
+                saveHint={dict.home.pageSaveHint}
+                rows={2}
                 accentColor={accentColor}
+                muted={false}
               />
-            </div>
-            <button
-              type="button"
-              onClick={() => setPendingRemoveId(field.id)}
-              className="cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
-              aria-label={dict.common.removeField}
-              title={dict.common.removeField}
-            >
-              ×
-            </button>
-          </div>
-          <EditableModuleField
-            locale={locale}
-            fieldKey={valueKey(field.id)}
-            defaultText={dict.common.newFieldValue}
-            editHint={dict.home.noteEdit}
-            placeholder={dict.common.fieldValuePlaceholder}
-            saveHint={dict.home.pageSaveHint}
-            rows={2}
-            accentColor={accentColor}
-            muted={false}
-          />
+            </SortableItem>
+          ))}
         </div>
-      ))}
+      </SortableList>
       <button
         type="button"
         onClick={onAdd}

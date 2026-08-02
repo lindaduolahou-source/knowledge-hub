@@ -178,6 +178,23 @@ export function removeContactLinkField(
   return links;
 }
 
+export function reorderContactLinkFields(
+  current: ContactLinkDef[],
+  linkId: string,
+  from: number,
+  to: number,
+): ContactLinkDef[] {
+  const links = current.map((link) => {
+    if (link.id !== linkId) return link;
+    const fields = moveIndex(link.fields ?? [], from, to);
+    if (fields === (link.fields ?? [])) return link;
+    return { ...link, fields };
+  });
+  if (links.every((link, i) => link === current[i])) return current;
+  saveContactLinks(links);
+  return links;
+}
+
 export function contactLabelKey(id: string, kind: ContactLinkDef["kind"]) {
   if (kind === "email" || kind === "github") return null;
   return `contact:link:${id}:label`;

@@ -5,7 +5,19 @@ import type { CustomModuleMeta } from "./module-layout";
 import type { ModuleSectionDef } from "./module-sections";
 import type { EditablePost, PostCollection } from "./post-edits";
 import type { EditableProject } from "./project-edits";
+import type { ExtraField } from "./extra-fields";
+import type { MindMapDoc } from "./mindmap-edits";
+import type { MindMapLibraryTemplate } from "./mindmap-library";
+import type { MindMapLibraryStyle } from "./mindmap-style-library";
+import type { LibraryTemplate } from "./share-card-library";
+import type { VaultCard } from "./share-card-vault";
 
+/**
+ * Central soft-delete store. Any user-facing “delete / remove” of a first-class
+ * item (module, section, project, post, roadmap stage, contact, vault card,
+ * card template, field/栏目, …) should `push*ToTrash` here before removing from
+ * its store, and restore via `trash-actions.ts`.
+ */
 const STORAGE_KEY = "knowledge-hub:trash";
 export const TRASH_EVENT = "knowledge-hub:trash-updated";
 
@@ -84,13 +96,90 @@ export type TrashContactItem = {
   deletedAt: number;
 };
 
+export type TrashVaultCardItem = {
+  id: string;
+  kind: "vault-card";
+  title: string;
+  card: VaultCard;
+  deletedAt: number;
+};
+
+export type TrashCardTemplateItem = {
+  id: string;
+  kind: "card-template";
+  title: string;
+  template: LibraryTemplate;
+  deletedAt: number;
+};
+
+export type TrashMindMapTemplateItem = {
+  id: string;
+  kind: "mindmap-template";
+  title: string;
+  template: MindMapLibraryTemplate;
+  deletedAt: number;
+};
+
+export type TrashMindMapStyleItem = {
+  id: string;
+  kind: "mindmap-style";
+  title: string;
+  style: MindMapLibraryStyle;
+  deletedAt: number;
+};
+
+export type FieldParent =
+  | { scope: "project"; moduleId: string; slug: string }
+  | { scope: "post"; collection: PostCollection; slug: string }
+  | { scope: "roadmap"; moduleId: string; stageId: string }
+  | { scope: "section"; moduleId: string; sectionId: string }
+  | { scope: "contact"; linkId: string };
+
+export type TrashFieldPayload =
+  | { type: "extra"; field: ExtraField }
+  | { type: "core"; slot: string }
+  | {
+      type: "section-field";
+      fieldId: string;
+      texts: Partial<Record<Locale, { label: string; value: string }>>;
+    }
+  | {
+      type: "contact-field";
+      fieldId: string;
+      texts: Partial<Record<Locale, { label: string; value: string }>>;
+    };
+
+export type TrashFieldItem = {
+  id: string;
+  kind: "field";
+  title: string;
+  parent: FieldParent;
+  payload: TrashFieldPayload;
+  deletedAt: number;
+};
+
+export type TrashMindMapItem = {
+  id: string;
+  kind: "mindmap";
+  moduleId: string;
+  title: string;
+  snapshot: Partial<Record<Locale, MindMapDoc>>;
+  deletedAt: number;
+};
+
 export type TrashItem =
   | TrashModuleItem
   | TrashSectionItem
   | TrashProjectItem
   | TrashPostItem
   | TrashRoadmapStageItem
-  | TrashContactItem;
+  | TrashContactItem
+  | TrashVaultCardItem
+  | TrashCardTemplateItem
+  | TrashMindMapTemplateItem
+  | TrashMindMapStyleItem
+  | TrashFieldItem
+  | TrashMindMapItem;
 
 type TrashState = {
   items: TrashItem[];
@@ -134,6 +223,19 @@ function isTrashItem(value: unknown): value is TrashItem {
       return typeof value.moduleId === "string" && isRecord(value.snapshot);
     case "contact":
       return isRecord(value.link) && typeof value.link.id === "string";
+    case "vault-card":
+      return isRecord(value.card) && typeof value.card.id === "string";
+    case "card-template":
+    case "mindmap-template":
+      return (
+        isRecord(value.template) && typeof value.template.id === "string"
+      );
+    case "mindmap-style":
+      return isRecord(value.style) && typeof value.style.id === "string";
+    case "field":
+      return isRecord(value.parent) && isRecord(value.payload);
+    case "mindmap":
+      return typeof value.moduleId === "string" && isRecord(value.snapshot);
     default:
       return false;
   }
@@ -337,6 +439,88 @@ export function pushContactToTrash(input: {
     texts: input.texts,
     deletedAt: Date.now(),
   }) as TrashContactItem;
+}
+
+export function pushVaultCardToTrash(input: {
+  title: string;
+  card: VaultCard;
+}): TrashVaultCardItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "vault-card",
+    title: input.title.trim() || input.card.name || input.card.id,
+    card: input.card,
+    deletedAt: Date.now(),
+  }) as TrashVaultCardItem;
+}
+
+export function pushCardTemplateToTrash(input: {
+  title: string;
+  template: LibraryTemplate;
+}): TrashCardTemplateItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "card-template",
+    title: input.title.trim() || input.template.name || input.template.id,
+    template: input.template,
+    deletedAt: Date.now(),
+  }) as TrashCardTemplateItem;
+}
+
+export function pushMindMapTemplateToTrash(input: {
+  title: string;
+  template: MindMapLibraryTemplate;
+}): TrashMindMapTemplateItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "mindmap-template",
+    title: input.title.trim() || input.template.name || input.template.id,
+    template: input.template,
+    deletedAt: Date.now(),
+  }) as TrashMindMapTemplateItem;
+}
+
+export function pushMindMapStyleToTrash(input: {
+  title: string;
+  style: MindMapLibraryStyle;
+}): TrashMindMapStyleItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "mindmap-style",
+    title: input.title.trim() || input.style.name || input.style.id,
+    style: input.style,
+    deletedAt: Date.now(),
+  }) as TrashMindMapStyleItem;
+}
+
+export function pushFieldToTrash(input: {
+  title: string;
+  parent: FieldParent;
+  payload: TrashFieldPayload;
+}): TrashFieldItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "field",
+    title: input.title.trim() || "field",
+    parent: input.parent,
+    payload: input.payload,
+    deletedAt: Date.now(),
+  }) as TrashFieldItem;
+}
+
+export function pushMindMapToTrash(input: {
+  moduleId: string;
+  title: string;
+  snapshot: Partial<Record<Locale, MindMapDoc>>;
+}): TrashMindMapItem {
+  return prependItem({
+    id: newTrashId(),
+    kind: "mindmap",
+    moduleId: input.moduleId,
+    title: input.title.trim() || "mindmap",
+    snapshot: input.snapshot,
+    deletedAt: Date.now(),
+  }) as TrashMindMapItem;
 }
 
 export function removeTrashItem(

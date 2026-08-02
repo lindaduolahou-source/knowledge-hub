@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { BackToExplore } from "@/components/BackToExplore";
 import { MarkdownContent } from "@/components/MarkdownContent";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
@@ -29,6 +30,8 @@ import {
   restoreCoreSlotOrAddCustom,
 } from "@/lib/core-slots";
 import { cloneExtraFields, createExtraFieldId } from "@/lib/extra-fields";
+import { trashCoreSlot, trashExtraField } from "@/lib/field-trash";
+import { removeTrashItem } from "@/lib/trash";
 
 interface EditableArticlePageProps {
   locale: Locale;
@@ -59,6 +62,8 @@ export function EditableArticlePage({
   backLabel,
   post,
 }: EditableArticlePageProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const fallback = postFromContent(post);
   const [item, setItem] = useState<EditablePost>(fallback);
   const [ready, setReady] = useState(false);
@@ -69,9 +74,27 @@ export function EditableArticlePage({
   >(null);
   const [pendingRemoveCoreSlot, setPendingRemoveCoreSlot] =
     useState<PostCoreSlot | null>(null);
+  const editingRef = useRef(false);
+  const sessionFieldTrashIds = useRef<string[]>([]);
+
+  function discardSessionFieldTrash() {
+    for (const id of sessionFieldTrashIds.current) removeTrashItem(id);
+    sessionFieldTrashIds.current = [];
+  }
+
+  function keepSessionFieldTrash() {
+    sessionFieldTrashIds.current = [];
+  }
+
+
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
 
   useEffect(() => {
     function refresh() {
+      // Don't clobber an in-progress edit when peer sync / storage events fire.
+      if (editingRef.current) return;
       const next =
         findEditablePost(collection, locale, post.slug, fallback) ?? fallback;
       setItem(next);
@@ -94,20 +117,43 @@ export function EditableArticlePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale, collection, post.slug]);
 
+  useEffect(() => {
+    if (!ready || editing) return;
+    if (searchParams.get("edit") !== "1") return;
+    const latest =
+      findEditablePost(collection, locale, post.slug, fallback) ?? fallback;
+    setItem(latest);
+    setDraft(draftFromItem(latest));
+    setEditing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, searchParams]);
+
+  function clearEditQuery() {
+    if (searchParams.get("edit") !== "1") return;
+    router.replace(window.location.pathname, { scroll: false });
+  }
+
   function startEdit() {
-    setDraft(draftFromItem(item));
+    discardSessionFieldTrash();
+    const latest =
+      findEditablePost(collection, locale, post.slug, item) ?? item;
+    setItem(latest);
+    setDraft(draftFromItem(latest));
     setEditing(true);
   }
 
   function cancelEdit() {
+    discardSessionFieldTrash();
     setDraft(null);
     setEditing(false);
     setPendingRemoveFieldId(null);
     setPendingRemoveCoreSlot(null);
+    clearEditQuery();
   }
 
   function commitEdit() {
     if (!draft) return;
+    keepSessionFieldTrash();
     const current = loadPostItems(collection, locale, [fallback]);
     const ensured = current.some((row) => row.slug === post.slug)
       ? current
@@ -131,10 +177,19 @@ export function EditableArticlePage({
     setItem(next.find((row) => row.slug === post.slug) ?? draft);
     setDraft(null);
     setEditing(false);
+    clearEditQuery();
   }
 
   function confirmRemoveField() {
     if (!draft || !pendingRemoveFieldId) return;
+    const field = draft.fields.find((row) => row.id === pendingRemoveFieldId);
+    if (field) {
+      const entry = trashExtraField(
+        { scope: "post", collection, slug: post.slug },
+        field,
+      );
+      sessionFieldTrashIds.current.push(entry.id);
+    }
     setDraft({
       ...draft,
       fields: draft.fields.filter((field) => field.id !== pendingRemoveFieldId),
@@ -144,6 +199,12 @@ export function EditableArticlePage({
 
   function confirmRemoveCoreSlot() {
     if (!draft || !pendingRemoveCoreSlot) return;
+    const entry = trashCoreSlot(
+      { scope: "post", collection, slug: post.slug },
+      pendingRemoveCoreSlot,
+      pendingRemoveCoreSlot,
+    );
+    sessionFieldTrashIds.current.push(entry.id);
     setDraft({
       ...draft,
       coreSlots: removeCoreSlot(draft.coreSlots, pendingRemoveCoreSlot),
@@ -177,33 +238,35 @@ export function EditableArticlePage({
     return <div className="h-64 animate-pulse rounded-lg bg-surface/40" />;
   }
 
-  const core = editing && draft
-    ? draft.coreSlots
-    : (item.coreSlots ?? [...POST_CORE_SLOTS]);
+  const core =
+    editing && draft
+      ? draft.coreSlots
+      : (item.coreSlots ?? [...POST_CORE_SLOTS]);
+  const hasContent = Boolean(item.content?.trim());
+  const showContentSlot = core.includes("content");
 
   return (
     <article>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={backHref ?? `/${locale}/${hrefPrefix}`}
-          className="inline-block font-mono text-xs text-accent hover:underline"
-        >
-          ← {backLabel}
-        </Link>
+      <BackToExplore
+        locale={locale}
+        label={backLabel}
+        href={backHref ?? `/${locale}/${hrefPrefix}`}
+      />
+      <div className="mb-8 flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-1">
           {editing ? (
             <>
               <button
                 type="button"
                 onClick={commitEdit}
-                className="cursor-pointer rounded px-1.5 py-0.5 text-[11px] text-white/55 transition-colors hover:bg-white/10 hover:text-white/85"
+                className="cursor-pointer rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] text-white/85 transition-colors hover:bg-white/15"
               >
                 {dict.common.done}
               </button>
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="cursor-pointer rounded px-1.5 py-0.5 text-[11px] text-white/35 transition-colors hover:bg-white/10 hover:text-white/70"
+                className="cursor-pointer rounded-md px-2.5 py-1 text-[11px] text-white/40 transition-colors hover:bg-white/10 hover:text-white/70"
               >
                 {dict.common.cancel}
               </button>
@@ -212,10 +275,9 @@ export function EditableArticlePage({
             <button
               type="button"
               onClick={startEdit}
-              title={dict.home.noteEdit}
-              className="cursor-pointer rounded px-1.5 py-0.5 text-[11px] text-muted/60 transition-colors hover:text-foreground/80"
+              className="cursor-pointer rounded-md border border-accent/35 bg-accent/10 px-2.5 py-1 text-[11px] text-accent transition-colors hover:bg-accent/20"
             >
-              {dict.home.noteEdit}
+              {dict.posts.editContent}
             </button>
           )}
         </div>
@@ -248,7 +310,7 @@ export function EditableArticlePage({
                   setDraft({ ...draft, title: event.target.value })
                 }
                 placeholder={dict.posts.titlePlaceholder}
-                className="w-full bg-transparent text-3xl font-medium tracking-tight text-foreground outline-none"
+                className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-3xl font-medium tracking-tight text-foreground outline-none focus:border-white/40"
               />
             </RemovableSlot>
           )}
@@ -269,7 +331,7 @@ export function EditableArticlePage({
                   })
                 }
                 placeholder={dict.posts.tagsPlaceholder}
-                className="w-full bg-transparent font-mono text-xs text-accent/80 outline-none"
+                className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 font-mono text-xs text-accent/80 outline-none focus:border-white/40"
               />
             </RemovableSlot>
           )}
@@ -285,7 +347,7 @@ export function EditableArticlePage({
                 }
                 rows={2}
                 placeholder={dict.posts.excerptPlaceholder}
-                className="w-full resize-y bg-transparent text-sm text-muted outline-none"
+                className="w-full resize-y rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-muted outline-none focus:border-white/40"
               />
             </RemovableSlot>
           )}
@@ -294,15 +356,20 @@ export function EditableArticlePage({
               removeLabel={dict.common.removeField}
               onRemove={() => setPendingRemoveCoreSlot("content")}
             >
-              <textarea
-                value={draft.content}
-                onChange={(event) =>
-                  setDraft({ ...draft, content: event.target.value })
-                }
-                rows={16}
-                placeholder={dict.posts.bodyPlaceholder}
-                className="w-full resize-y bg-transparent text-sm leading-relaxed text-foreground outline-none"
-              />
+              <div>
+                <p className="mb-2 text-xs text-muted">
+                  {dict.posts.contentLabel}
+                </p>
+                <textarea
+                  value={draft.content}
+                  onChange={(event) =>
+                    setDraft({ ...draft, content: event.target.value })
+                  }
+                  rows={16}
+                  placeholder={dict.posts.bodyPlaceholder}
+                  className="w-full resize-y rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm leading-relaxed text-foreground outline-none focus:border-white/40"
+                />
+              </div>
             </RemovableSlot>
           )}
           <ExtraFieldsEditor
@@ -336,7 +403,7 @@ export function EditableArticlePage({
             )}
             {core.includes("title") && (
               <h1 className="text-3xl font-medium tracking-tight">
-                {item.title}
+                {item.title || dict.posts.titlePlaceholder}
               </h1>
             )}
             {core.includes("excerpt") && item.excerpt.trim() && (
@@ -345,9 +412,29 @@ export function EditableArticlePage({
               </p>
             )}
           </header>
-          {core.includes("content") && (
-            <MarkdownContent content={item.content || item.excerpt} />
-          )}
+
+          {showContentSlot ? (
+            hasContent ? (
+              <button
+                type="button"
+                onClick={startEdit}
+                className="w-full cursor-pointer rounded-lg border border-transparent text-left transition-colors hover:border-white/10 hover:bg-white/[0.02]"
+                title={dict.posts.editContent}
+              >
+                <MarkdownContent content={item.content} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startEdit}
+                className="w-full cursor-pointer rounded-xl border border-dashed border-white/20 px-4 py-10 text-left text-sm text-white/45 transition-colors hover:border-white/35 hover:text-white/75"
+              >
+                <span className="mr-2 text-base text-white/50">+</span>
+                {dict.posts.emptyContentHint}
+              </button>
+            )
+          ) : null}
+
           <ExtraFieldsView fields={item.fields} copy={dict.common} />
         </>
       )}

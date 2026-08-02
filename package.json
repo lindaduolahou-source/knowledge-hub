@@ -10,6 +10,8 @@
     "publish:content": "node scripts/apply-published-content.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.111.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.27.0",
     "next": "16.2.12",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { RoadmapItem } from "@/lib/content";
@@ -28,6 +28,8 @@ import {
   restoreCoreSlotOrAddCustom,
 } from "@/lib/core-slots";
 import { cloneExtraFields, createExtraFieldId } from "@/lib/extra-fields";
+import { trashCoreSlot, trashExtraField } from "@/lib/field-trash";
+import { removeTrashItem } from "@/lib/trash";
 
 interface RoadmapTimelineProps {
   locale: Locale;
@@ -63,6 +65,16 @@ export function RoadmapTimeline({
   >(null);
   const [pendingRemoveCoreSlot, setPendingRemoveCoreSlot] =
     useState<RoadmapCoreSlot | null>(null);
+  const sessionFieldTrashIds = useRef<string[]>([]);
+
+  function discardSessionFieldTrash() {
+    for (const id of sessionFieldTrashIds.current) removeTrashItem(id);
+    sessionFieldTrashIds.current = [];
+  }
+
+  function keepSessionFieldTrash() {
+    sessionFieldTrashIds.current = [];
+  }
 
   useEffect(() => {
     function refresh() {
@@ -100,11 +112,13 @@ export function RoadmapTimeline({
   }, [locale, moduleId]);
 
   function startEdit(item: RoadmapItem) {
+    discardSessionFieldTrash();
     setEditingId(item.id);
     setDraft(draftFromItem(item));
   }
 
   function cancelEdit() {
+    discardSessionFieldTrash();
     setEditingId(null);
     setDraft(null);
     setPendingRemoveFieldId(null);
@@ -113,6 +127,7 @@ export function RoadmapTimeline({
 
   function commitEdit() {
     if (!editingId || !draft) return;
+    keepSessionFieldTrash();
     setItems(
       updateRoadmapItem(
         moduleId,
@@ -174,7 +189,17 @@ export function RoadmapTimeline({
   }
 
   function confirmRemoveField() {
-    if (!draft || !pendingRemoveFieldId) return;
+    if (!draft || !pendingRemoveFieldId || !editingId) return;
+    const field = (draft.fields ?? []).find(
+      (row) => row.id === pendingRemoveFieldId,
+    );
+    if (field) {
+      const entry = trashExtraField(
+        { scope: "roadmap", moduleId, stageId: editingId },
+        field,
+      );
+      sessionFieldTrashIds.current.push(entry.id);
+    }
     setDraft({
       ...draft,
       fields: (draft.fields ?? []).filter(
@@ -185,7 +210,13 @@ export function RoadmapTimeline({
   }
 
   function confirmRemoveCoreSlot() {
-    if (!draft || !pendingRemoveCoreSlot) return;
+    if (!draft || !pendingRemoveCoreSlot || !editingId) return;
+    const entry = trashCoreSlot(
+      { scope: "roadmap", moduleId, stageId: editingId },
+      pendingRemoveCoreSlot,
+      pendingRemoveCoreSlot,
+    );
+    sessionFieldTrashIds.current.push(entry.id);
     setDraft({
       ...draft,
       coreSlots: removeCoreSlot(

@@ -9,6 +9,7 @@ import {
   addBuiltinModule,
   createCustomModule,
   removeActiveModule,
+  reorderActiveModules,
 } from "@/lib/module-layout";
 import { isBuiltinModuleId, type ModuleConfig } from "@/lib/modules";
 import {
@@ -19,6 +20,7 @@ import { useModuleTitle } from "@/hooks/useModuleTitle";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EditableModuleTitle } from "./EditableModuleTitle";
 import { EditableTocNote } from "./EditableTocNote";
+import { DragHandle, SortableItem, SortableList } from "./SortableReorder";
 
 interface ModuleDeckProps {
   locale: Locale;
@@ -54,6 +56,10 @@ export function ModuleDeck({ locale, dict, variant }: ModuleDeckProps) {
     setPickerOpen(false);
   }
 
+  function handleReorder(from: number, to: number) {
+    reorderActiveModules(from, to);
+  }
+
   if (!ready) {
     return (
       <div
@@ -81,18 +87,21 @@ export function ModuleDeck({ locale, dict, variant }: ModuleDeckProps) {
   if (variant === "list") {
     return (
       <div>
-        <ol className="divide-y divide-white/10 border-y border-white/10">
-          {active.map((mod, index) => (
-            <ModuleListItem
-              key={mod.id}
-              locale={locale}
-              dict={dict}
-              mod={mod}
-              index={index}
-              canRemove={active.length > 1}
-            />
-          ))}
-        </ol>
+        <SortableList count={active.length} onReorder={handleReorder}>
+          <div className="divide-y divide-white/10 border-y border-white/10">
+            {active.map((mod, index) => (
+              <SortableItem key={mod.id} index={index}>
+                <ModuleListItem
+                  locale={locale}
+                  dict={dict}
+                  mod={mod}
+                  index={index}
+                  canRemove={active.length > 1}
+                />
+              </SortableItem>
+            ))}
+          </div>
+        </SortableList>
         <AddModulePanel
           locale={locale}
           dict={dict}
@@ -109,30 +118,37 @@ export function ModuleDeck({ locale, dict, variant }: ModuleDeckProps) {
 
   return (
     <div className="w-full">
-      <ul className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {active.map((mod, index) => (
-          <ModuleGridCard
-            key={mod.id}
-            locale={locale}
-            dict={dict}
-            mod={mod}
-            index={index}
-            canRemove={active.length > 1}
-          />
-        ))}
-        <li>
-          <AddModulePanel
-            locale={locale}
-            dict={dict}
-            hidden={hidden}
-            pickerOpen={pickerOpen}
-            setPickerOpen={setPickerOpen}
-            onRestore={addBuiltinModule}
-            onCreateCustom={handleCreateCustom}
-            variant="grid"
-          />
-        </li>
-      </ul>
+      <SortableList count={active.length} onReorder={handleReorder}>
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {active.map((mod, index) => (
+            <SortableItem
+              key={mod.id}
+              index={index}
+              className="explore-node"
+            >
+              <ModuleGridCard
+                locale={locale}
+                dict={dict}
+                mod={mod}
+                index={index}
+                canRemove={active.length > 1}
+              />
+            </SortableItem>
+          ))}
+          <div>
+            <AddModulePanel
+              locale={locale}
+              dict={dict}
+              hidden={hidden}
+              pickerOpen={pickerOpen}
+              setPickerOpen={setPickerOpen}
+              onRestore={addBuiltinModule}
+              onCreateCustom={handleCreateCustom}
+              variant="grid"
+            />
+          </div>
+        </div>
+      </SortableList>
     </div>
   );
 }
@@ -155,7 +171,7 @@ function ModuleListItem({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <li className="landing-module group/card py-5">
+    <div className="landing-module group/card group/item py-5">
       <div className="flex items-start gap-4 sm:gap-6">
         <span className="w-8 shrink-0 pt-0.5 text-sm tabular-nums text-white/35">
           {String(index + 1).padStart(2, "0")}
@@ -174,25 +190,28 @@ function ModuleListItem({
               className="min-w-0 flex-1"
               href={`/${locale}${mod.href}`}
             />
-            <Link
-              href={`/${locale}${mod.href}`}
-              className="mt-0.5 shrink-0 cursor-pointer text-sm text-white/25 transition-all hover:translate-x-0.5 hover:text-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-              aria-label={liveTitle}
-              tabIndex={-1}
-            >
-              →
-            </Link>
-            {canRemove && (
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="mt-0.5 shrink-0 cursor-pointer rounded px-1.5 text-sm opacity-0 pointer-events-none transition-opacity group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-hover/card:text-white/35 hover:!text-white/70 focus-visible:pointer-events-auto focus-visible:opacity-100"
-                aria-label={dict.home.removeModule}
-                title={dict.home.removeModule}
+            <div className="mt-0.5 flex shrink-0 items-center gap-0.5">
+              <DragHandle index={index} label={dict.common.reorder} />
+              <Link
+                href={`/${locale}${mod.href}`}
+                className="cursor-pointer text-sm text-white/25 transition-all hover:translate-x-0.5 hover:text-white/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                aria-label={liveTitle}
+                tabIndex={-1}
               >
-                ×
-              </button>
-            )}
+                →
+              </Link>
+              {canRemove && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(true)}
+                  className="cursor-pointer rounded px-1.5 text-sm opacity-0 pointer-events-none transition-opacity group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-hover/card:text-white/35 hover:!text-white/70 focus-visible:pointer-events-auto focus-visible:opacity-100"
+                  aria-label={dict.home.removeModule}
+                  title={dict.home.removeModule}
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
 
           <EditableTocNote
@@ -218,7 +237,7 @@ function ModuleListItem({
         }}
         onCancel={() => setConfirmOpen(false)}
       />
-    </li>
+    </div>
   );
 }
 
@@ -240,16 +259,17 @@ function ModuleGridCard({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <li
-      className="explore-node group/card"
+    <div
+      className="group/card group/item h-full"
       style={{ animationDelay: `${index * 60}ms` }}
     >
       <div className="h-full rounded-xl border border-white/20 bg-black/45 px-4 py-4 backdrop-blur-md transition-colors hover:border-white/35">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-[11px] tracking-[0.18em] text-white/40">
             {String(index + 1).padStart(2, "0")}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5">
+            <DragHandle index={index} label={dict.common.reorder} />
             {canRemove && (
               <button
                 type="button"
@@ -261,7 +281,7 @@ function ModuleGridCard({
                 ×
               </button>
             )}
-            <span className="h-1.5 w-1.5 rounded-full bg-white/55" />
+            <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-white/55" />
           </div>
         </div>
 
@@ -310,7 +330,7 @@ function ModuleGridCard({
           href={`/${locale}${mod.href}`}
         />
       </div>
-    </li>
+    </div>
   );
 }
 

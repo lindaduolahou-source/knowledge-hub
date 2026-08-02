@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { PostMeta, Project, RoadmapItem } from "@/lib/content";
@@ -23,20 +24,25 @@ import {
   createPostItem,
   loadPostItems,
   postCollectionForModule,
+  postDetailHref,
   postFromMeta,
-  requestPostEdit,
 } from "@/lib/post-edits";
 import {
   createProjectItem,
   loadProjectItems,
+  projectDetailHref,
   projectFromContent,
-  requestProjectEdit,
 } from "@/lib/project-edits";
 import {
   createRoadmapItem,
   loadRoadmapItems,
   requestRoadmapEdit,
 } from "@/lib/roadmap-edits";
+import {
+  createMindMap,
+  loadMindMaps,
+  requestMindMapEdit,
+} from "@/lib/mindmap-edits";
 
 export type ModuleAddFeatures = {
   /** Contact module only — adds “联系方式”. */
@@ -55,7 +61,7 @@ interface ModuleAddMenuProps {
 }
 
 type Panel = "root" | "section";
-type Choice = "section" | "project" | "post" | "path" | "contact";
+type Choice = "section" | "project" | "post" | "path" | "mindmap" | "contact";
 
 export function ModuleAddMenu({
   locale,
@@ -63,6 +69,7 @@ export function ModuleAddMenu({
   moduleId,
   features = {},
 }: ModuleAddMenuProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>("root");
   const postCollection = postCollectionForModule(moduleId);
@@ -70,8 +77,9 @@ export function ModuleAddMenu({
   const choices: Choice[] = [
     "section",
     "project",
-    "post",
     "path",
+    "mindmap",
+    "post",
     ...(features.contact ? (["contact"] as const) : []),
   ];
 
@@ -107,11 +115,12 @@ export function ModuleAddMenu({
       {
         title: dict.projects.newProjectTitle,
         description: dict.projects.newProjectBody,
+        content: dict.projects.newProjectContent,
       },
       defaults,
     );
-    requestProjectEdit(moduleId, slug);
     close();
+    router.push(`${projectDetailHref(locale, moduleId, slug)}?edit=1`);
   }
 
   function addPost() {
@@ -130,8 +139,8 @@ export function ModuleAddMenu({
       },
       defaults,
     );
-    requestPostEdit(postCollection, slug);
     close();
+    router.push(`${postDetailHref(locale, moduleId, slug)}?edit=1`);
   }
 
   function addPath() {
@@ -167,6 +176,17 @@ export function ModuleAddMenu({
     close();
   }
 
+  function addMindMap() {
+    const current = loadMindMaps(moduleId, locale, []);
+    const { id } = createMindMap(moduleId, locale, current, {
+      title: dict.mindmap.newMapTitle,
+      rootText: dict.mindmap.newRootText,
+      branchText: dict.mindmap.newBranchText,
+    });
+    requestMindMapEdit(moduleId, id);
+    close();
+  }
+
   function choiceLabel(kind: Choice) {
     switch (kind) {
       case "section":
@@ -177,6 +197,8 @@ export function ModuleAddMenu({
         return dict.posts.addPost;
       case "path":
         return dict.roadmap.addPath;
+      case "mindmap":
+        return dict.mindmap.addMap;
       case "contact":
         return dict.contact.addLink;
     }
@@ -190,6 +212,7 @@ export function ModuleAddMenu({
     if (kind === "project") addProject();
     else if (kind === "post") addPost();
     else if (kind === "path") addPath();
+    else if (kind === "mindmap") addMindMap();
     else if (kind === "contact") void addContact();
   }
 

@@ -44,6 +44,8 @@ export type EditableProject = {
   date: string;
   /** Optional share link. */
   link?: string;
+  /** Full project body (detail page, Markdown). */
+  content: string;
   /** Extra user-defined fields within the project. */
   fields: ExtraField[];
   /** Built-in title/description/link slots still shown. */
@@ -54,6 +56,20 @@ export type EditableProject = {
   demo?: string;
   featured?: boolean;
 };
+
+/** Path under /[locale]/ for project detail links (no leading slash). */
+export function projectHrefPrefixForModule(moduleId: string): string {
+  if (moduleId === "lab") return "projects";
+  return `p/${moduleId}`;
+}
+
+export function projectDetailHref(
+  locale: string,
+  moduleId: string,
+  slug: string,
+) {
+  return `/${locale}/${projectHrefPrefixForModule(moduleId)}/${slug}`;
+}
 
 /** Per-module project lists. Legacy flat `{ zh, en }` is migrated into `lab`. */
 type ProjectStore = Record<string, Partial<Record<Locale, EditableProject[]>>>;
@@ -130,6 +146,7 @@ function normalizeItem(item: unknown): EditableProject | null {
         ? row.date
         : new Date().toISOString().slice(0, 10),
     link: link || undefined,
+    content: typeof row.content === "string" ? row.content : "",
     fields: normalizeExtraFields(row.fields),
     coreSlots: normalizeCoreSlots(row.coreSlots, PROJECT_CORE_SLOTS),
     featured: Boolean(row.featured),
@@ -143,6 +160,7 @@ function cloneItems(items: EditableProject[]): EditableProject[] {
     description: item.description,
     date: item.date,
     link: item.link,
+    content: item.content,
     fields: cloneExtraFields(item.fields),
     coreSlots: cloneCoreSlots(item.coreSlots ?? [...PROJECT_CORE_SLOTS]),
     featured: item.featured,
@@ -156,6 +174,7 @@ export function projectFromContent(project: Project): EditableProject {
     description: project.description,
     date: project.date,
     link: project.github || project.demo,
+    content: "",
     fields: [],
     coreSlots: [...PROJECT_CORE_SLOTS],
     featured: project.featured,
@@ -187,6 +206,25 @@ export function loadProjectItems(
       .filter((item): item is EditableProject => Boolean(item));
   }
   return cloneItems(defaults);
+}
+
+export function findEditableProject(
+  moduleId: string,
+  locale: Locale,
+  slug: string,
+  fallback: EditableProject | null,
+): EditableProject | null {
+  const items = loadProjectItems(
+    moduleId,
+    locale,
+    fallback ? [fallback] : [],
+  );
+  const found = items.find((item) => item.slug === slug);
+  if (!found) return fallback;
+  if ((!found.content || !found.content.trim()) && fallback?.content) {
+    return { ...found, content: fallback.content };
+  }
+  return found;
 }
 
 function readStoredOrFallback(
@@ -245,7 +283,7 @@ export function createProjectItem(
   moduleId: string,
   locale: Locale,
   current: EditableProject[],
-  seed: { title: string; description: string },
+  seed: { title: string; description: string; content?: string },
   peerFallback: EditableProject[] = current,
 ): { items: EditableProject[]; slug: string } {
   const slug = `project-${Date.now().toString(36)}`;
@@ -257,6 +295,7 @@ export function createProjectItem(
       description: seed.description,
       date: new Date().toISOString().slice(0, 10),
       link: undefined,
+      content: seed.content ?? "",
       fields: [],
       coreSlots: [...PROJECT_CORE_SLOTS],
       featured: false,
@@ -364,6 +403,7 @@ export function updateProjectItem(
     patch.title !== undefined ||
     patch.description !== undefined ||
     patch.link !== undefined ||
+    patch.content !== undefined ||
     patch.fields !== undefined
   ) {
     void syncPeerText(moduleId, locale, slug, items);
@@ -390,6 +430,9 @@ async function syncPeerText(
   const translatedDescription = source.description.trim()
     ? await translateTocNote(source.description, locale, peer)
     : "";
+  const translatedContent = source.content.trim()
+    ? await translateTocNote(source.content, locale, peer)
+    : "";
   const translatedFields = await translateExtraFields(
     source.fields,
     locale,
@@ -409,6 +452,7 @@ async function syncPeerText(
           ...item,
           title: translatedTitle,
           description: translatedDescription,
+          content: translatedContent,
           link: source.link,
           fields: translatedFields,
           coreSlots: cloneCoreSlots(

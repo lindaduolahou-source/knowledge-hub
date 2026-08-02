@@ -32,7 +32,7 @@ export function ModulePageChrome({
         locale={locale}
         label={backLabel}
         module={module}
-        floating
+        href={`/${locale}/explore`}
       />
       <ModuleShareCardLauncher
         locale={locale}

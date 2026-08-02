@@ -40,7 +40,7 @@ export const zh = {
     addContentBack: "返回",
     removeModule: "移除模块",
     removeModuleConfirm: "确定移除此模块？可在回收站恢复。",
-    moduleManageHint: "悬停卡片可移除 · 底部可添加",
+    moduleManageHint: "拖动手柄调整顺序 · 悬停卡片可移除 · 底部可添加",
     addSection: "添加小节",
     addSectionHint: "选择小节内容形式",
     removeSection: "移除小节",
@@ -62,7 +62,7 @@ export const zh = {
   trash: {
     open: "回收站",
     title: "回收站",
-    subtitle: "已删除的模块与内容",
+    subtitle: "已删除的内容可在此恢复",
     emptyState: "回收站是空的",
     restore: "恢复",
     deleteForever: "彻底删除",
@@ -76,16 +76,75 @@ export const zh = {
     kindPost: "文章",
     kindRoadmap: "路径",
     kindContact: "联系方式",
+    kindVaultCard: "名片",
+    kindCardTemplate: "名片模板",
+    kindField: "栏目",
+    kindMindMap: "思维导图",
+    kindMindMapTemplate: "思维导图模板",
+    kindMindMapStyle: "导图样式",
     kindItem: "内容",
   },
   explore: {
     title: "探索中心",
     subtitle: "知识网络 · 节点接入",
-    back: "返回首页",
+    back: "返回入口",
     pending: "亟待探索",
     core: "CORE",
     online: "ONLINE",
     ready: "READY",
+  },
+  hub: {
+    eyebrow: "Portal",
+    title: "你想从哪里开始？",
+    back: "返回首页",
+    backToHub: "返回入口",
+    backHome: "回到首页",
+    exploreSpace: "探索中心",
+    exploreSpaceHint: "",
+    cards: "名片管理",
+    cardsHint: "",
+    cardsPageHint: "名片仓库：保存、编辑与分享",
+    openCard: "制作",
+    vaultTitle: "名片仓库",
+    vaultHint: "创建的名片会保存在这里，可随时编辑或分享",
+    vaultCreate: "新建名片",
+    vaultEmpty: "仓库还是空的，先创建一张名片吧",
+    vaultEdit: "编辑",
+    vaultRemove: "删除名片",
+    vaultRemoveConfirm: "确定删除这张名片？可在回收站恢复。",
+    vaultUpdated: "更新于",
+    vaultNoBody: "暂无正文，点编辑完善内容",
+    vaultPickHint: "选择模块内容作为名片起点",
+    vaultImportTemplate: "导入模板",
+    vaultExportTemplate: "导出模板",
+    vaultTemplates: "名片模板",
+    vaultTemplatesHint: "选用内置样式，或导入 JSON 模板文件",
+    vaultBuiltinTemplates: "内置模板",
+    vaultUseTemplate: "使用此模板",
+    vaultImportFile: "从文件导入",
+    vaultImportSuccess: "模板已导入仓库",
+    vaultImportFailed: "模板文件无效，请检查后重试",
+    vaultExportSuccess: "模板已导出",
+    vaultMyLibrary: "我的模板库",
+    vaultMyLibraryHint: "收藏的个人模板，可随时套用到名片仓库",
+    vaultMyLibraryEmpty: "模板库还是空的，可从名片「存入模板库」添加",
+    vaultBackToLibrary: "返回模板库",
+    vaultOpenTemplate: "查看",
+    vaultTemplatePreview: "模板预览",
+    vaultSaveToLibrary: "存入模板库",
+    vaultSavedToLibrary: "已存入我的模板库",
+    vaultRemoveFromLibrary: "从模板库删除",
+    vaultRemoveFromLibraryConfirm: "确定从模板库删除此模板？可在回收站恢复。",
+    vaultImportToLibrary: "导入到模板库",
+    vaultImportedToLibrary: "已加入我的模板库",
+    aiHelp: "AI 帮助",
+    aiHelpHint: "",
+    aiHelpBody:
+      "这里将接入 AI，帮你润色文案、翻译内容，或基于你的知识库提问。",
+    more: "更多",
+    moreHint: "",
+    morePageHint: "",
+    comingSoon: "即将推出，敬请期待",
   },
   modules: {
     space: {
@@ -141,6 +200,76 @@ export const zh = {
     stageBodyPlaceholder: "阶段说明",
     topicsPlaceholder: "主题（用逗号分隔）",
   },
+  pageBlocks: {
+    intro: "简介",
+    contact: "联系方式",
+    sections: "章节",
+    projects: "项目",
+    path: "路径",
+    mindmap: "思维导图",
+    posts: "文章",
+  },
+  mindmap: {
+    title: "思维导图",
+    addMap: "添加思维导图",
+    openMap: "打开",
+    backToList: "返回列表",
+    removeMap: "移除思维导图",
+    removeMapConfirm: "确定移除此思维导图？可在回收站恢复。",
+    newMapTitle: "新思维导图",
+    newRootText: "中心主题",
+    newBranchText: "分支",
+    titlePlaceholder: "导图标题",
+    nodePlaceholder: "节点文字",
+    nodesLabel: "个节点",
+    addChild: "添加子节点",
+    addSibling: "添加同级节点",
+    deleteNode: "删除节点",
+    deleteNodeConfirm: "确定删除此节点及其子节点？",
+    editHint: "单击选中 · 双击改文字 · 拖左侧手柄移动分支",
+    dragHandle: "拖动手柄",
+    nodeFill: "底色",
+    nodeFont: "字体",
+    selectNodeForStyle: "先选中节点，再选择底色与字体",
+    edgeStyle: "连线样式",
+    edgeStyleHint: "免费连线模板，应用到整张导图",
+    importStyle: "导入样式",
+    exportStyle: "导出样式",
+    importedStyles: "我的样式",
+    myTemplates: "我的模板",
+    styleImportError: "无法识别该样式文件，请使用 JSON 样式包",
+    removeImportedStyle: "删除样式",
+    removeImportedStyleConfirm: "确定删除此样式？可在回收站恢复。",
+    saveStyleToLibrary: "存入样式库",
+    savedStyleToLibrary: "已存入样式库",
+    addTemplateToLibrary: "添加当前为模板",
+    removeBoardTemplateConfirm: "确定删除此模板？可在回收站恢复。",
+    boardTemplateLibrary: "免费模板库",
+    boardTemplateLibraryHint: "点选大纲模板将替换当前导图节点；也可从文件导入",
+    expandBoardLibrary: "展开模板库",
+    collapseBoardLibrary: "收起模板库",
+    connectorTemplates: "连线模板",
+    templateLibrary: "导图模板",
+    templateLibraryHint: "选用内置模板或导入文件，将替换当前导图",
+    freeTemplates: "内置模板",
+    importTemplate: "导入模板",
+    useTemplate: "使用此模板",
+    exportTemplate: "导出模板",
+    templateImportError: "无法识别该模板文件，请使用 JSON 模板或 Markdown 大纲",
+    fromTemplate: "从模板创建",
+    myLibrary: "我的模板库",
+    myLibraryHint: "收藏的个人模板，可随时套用到当前导图",
+    myLibraryEmpty: "模板库还是空的，可点「存入模板库」添加",
+    saveToLibrary: "存入模板库",
+    savedToLibrary: "已存入我的模板库",
+    removeFromLibrary: "从模板库删除",
+    removeFromLibraryConfirm: "确定从模板库删除此模板？可在回收站恢复。",
+    importToLibrary: "导入到模板库",
+    backToLibrary: "返回模板库",
+    templatePreview: "模板预览",
+    openTemplate: "打开",
+    libraryUpdated: "更新于",
+  },
   blog: {
     title: "知识星球",
     subtitle: "技术笔记、论文阅读与实践经验",
@@ -151,14 +280,21 @@ export const zh = {
     title: "项目实验室",
     subtitle: "从实验到落地，记录每一个构建",
     viewProject: "查看详情",
+    readMore: "阅读全文",
+    editContent: "编辑正文",
+    contentLabel: "项目正文",
+    emptyContentHint: "点击填写项目具体内容…",
+    back: "返回项目实验室",
     tech: "技术栈",
     addProject: "添加项目",
     removeProject: "移除项目",
     removeProjectConfirm: "确定移除此项目？可在回收站恢复。",
     newProjectTitle: "新项目",
     newProjectBody: "写一段项目说明…",
+    newProjectContent: "在这里写项目的具体内容…",
     titlePlaceholder: "项目名称",
-    bodyPlaceholder: "项目说明",
+    bodyPlaceholder: "项目说明（摘要）",
+    contentPlaceholder: "项目正文（支持 Markdown）",
     linkPlaceholder: "分享链接（可选）",
     tagsPlaceholder: "技术栈（用逗号分隔）",
     githubPlaceholder: "GitHub 链接（可选）",
@@ -176,6 +312,9 @@ export const zh = {
     newPostTitle: "新文章",
     newPostExcerpt: "写一段摘要…",
     newPostBody: "写正文内容…",
+    editContent: "编辑正文",
+    contentLabel: "文章正文",
+    emptyContentHint: "点击填写文章具体内容…",
     titlePlaceholder: "文章标题",
     excerptPlaceholder: "摘要",
     bodyPlaceholder: "正文（支持 Markdown）",
@@ -196,7 +335,7 @@ export const zh = {
     valuePlaceholder: "邮箱 / 链接 / 账号",
   },
   common: {
-    backToExplore: "返回探索中心",
+    backToExplore: "返回中心",
     confirm: "确定",
     cancel: "取消",
     done: "完成",
@@ -205,19 +344,38 @@ export const zh = {
     reorder: "拖动调整顺序",
     addField: "添加栏目",
     removeField: "移除栏目",
-    removeFieldConfirm: "确定移除此栏目？",
+    removeFieldConfirm: "确定移除此栏目？可在回收站恢复。",
     newFieldLabel: "新栏目",
     newFieldValue: "填写内容…",
     fieldLabelPlaceholder: "栏目标题",
     fieldValuePlaceholder: "栏目内容",
+  },
+  auth: {
+    signIn: "登录",
+    signUp: "注册",
+    signOut: "退出登录",
+    account: "账号",
+    signedIn: "已登录",
+    email: "邮箱",
+    password: "密码",
+    working: "请稍候…",
+    signInHint: "登录后，编辑内容会同步到云端数据库",
+    syncHint: "已开启云端同步：换设备登录可继续编辑",
+    checkEmail: "请查收邮箱完成验证（若已开启邮箱确认）",
+    needAccount: "还没有账号？注册",
+    hasAccount: "已有账号？登录",
+    ownerOnly: "仅站长邮箱可登录",
   },
   shareCard: {
     open: "制作名片",
     title: "分享名片",
     close: "关闭",
     pickModuleTitle: "选择模块",
-    pickModuleHint: "从目录选择模块，进入后制作名片",
+    pickModuleHint: "选择模块后进入名片仓库创建",
     pickModuleEmpty: "目录中暂无模块",
+    saveToVault: "存入名片仓库",
+    savedToVault: "已存入名片仓库",
+    newVaultCard: "未命名名片",
     selectHint: "选择内容",
     preview: "预览",
     previewEditHint: "点击预览文字可直接编辑",
@@ -344,6 +502,12 @@ export type Dictionary = {
     kindPost: string;
     kindRoadmap: string;
     kindContact: string;
+    kindVaultCard: string;
+    kindCardTemplate: string;
+    kindField: string;
+    kindMindMap: string;
+    kindMindMapTemplate: string;
+    kindMindMapStyle: string;
     kindItem: string;
   };
   explore: {
@@ -354,6 +518,58 @@ export type Dictionary = {
     core: string;
     online: string;
     ready: string;
+  };
+  hub: {
+    eyebrow: string;
+    title: string;
+    back: string;
+    backToHub: string;
+    backHome: string;
+    exploreSpace: string;
+    exploreSpaceHint: string;
+    cards: string;
+    cardsHint: string;
+    cardsPageHint: string;
+    openCard: string;
+    vaultTitle: string;
+    vaultHint: string;
+    vaultCreate: string;
+    vaultEmpty: string;
+    vaultEdit: string;
+    vaultRemove: string;
+    vaultRemoveConfirm: string;
+    vaultUpdated: string;
+    vaultNoBody: string;
+    vaultPickHint: string;
+    vaultImportTemplate: string;
+    vaultExportTemplate: string;
+    vaultTemplates: string;
+    vaultTemplatesHint: string;
+    vaultBuiltinTemplates: string;
+    vaultUseTemplate: string;
+    vaultImportFile: string;
+    vaultImportSuccess: string;
+    vaultImportFailed: string;
+    vaultExportSuccess: string;
+    vaultMyLibrary: string;
+    vaultMyLibraryHint: string;
+    vaultMyLibraryEmpty: string;
+    vaultBackToLibrary: string;
+    vaultOpenTemplate: string;
+    vaultTemplatePreview: string;
+    vaultSaveToLibrary: string;
+    vaultSavedToLibrary: string;
+    vaultRemoveFromLibrary: string;
+    vaultRemoveFromLibraryConfirm: string;
+    vaultImportToLibrary: string;
+    vaultImportedToLibrary: string;
+    aiHelp: string;
+    aiHelpHint: string;
+    aiHelpBody: string;
+    more: string;
+    moreHint: string;
+    morePageHint: string;
+    comingSoon: string;
   };
   modules: Record<
     "space" | "roadmap" | "knowledge" | "lab" | "thoughts" | "contact",
@@ -382,6 +598,76 @@ export type Dictionary = {
     stageBodyPlaceholder: string;
     topicsPlaceholder: string;
   };
+  pageBlocks: {
+    intro: string;
+    contact: string;
+    sections: string;
+    projects: string;
+    path: string;
+    mindmap: string;
+    posts: string;
+  };
+  mindmap: {
+    title: string;
+    addMap: string;
+    openMap: string;
+    backToList: string;
+    removeMap: string;
+    removeMapConfirm: string;
+    newMapTitle: string;
+    newRootText: string;
+    newBranchText: string;
+    titlePlaceholder: string;
+    nodePlaceholder: string;
+    nodesLabel: string;
+    addChild: string;
+    addSibling: string;
+    deleteNode: string;
+    deleteNodeConfirm: string;
+    editHint: string;
+    dragHandle: string;
+    nodeFill: string;
+    nodeFont: string;
+    selectNodeForStyle: string;
+    edgeStyle: string;
+    edgeStyleHint: string;
+    importStyle: string;
+    exportStyle: string;
+    importedStyles: string;
+    myTemplates: string;
+    styleImportError: string;
+    removeImportedStyle: string;
+    removeImportedStyleConfirm: string;
+    saveStyleToLibrary: string;
+    savedStyleToLibrary: string;
+    addTemplateToLibrary: string;
+    removeBoardTemplateConfirm: string;
+    boardTemplateLibrary: string;
+    boardTemplateLibraryHint: string;
+    expandBoardLibrary: string;
+    collapseBoardLibrary: string;
+    connectorTemplates: string;
+    templateLibrary: string;
+    templateLibraryHint: string;
+    freeTemplates: string;
+    importTemplate: string;
+    useTemplate: string;
+    exportTemplate: string;
+    templateImportError: string;
+    fromTemplate: string;
+    myLibrary: string;
+    myLibraryHint: string;
+    myLibraryEmpty: string;
+    saveToLibrary: string;
+    savedToLibrary: string;
+    removeFromLibrary: string;
+    removeFromLibraryConfirm: string;
+    importToLibrary: string;
+    backToLibrary: string;
+    templatePreview: string;
+    openTemplate: string;
+    libraryUpdated: string;
+  };
   blog: {
     title: string;
     subtitle: string;
@@ -392,14 +678,21 @@ export type Dictionary = {
     title: string;
     subtitle: string;
     viewProject: string;
+    readMore: string;
+    editContent: string;
+    contentLabel: string;
+    emptyContentHint: string;
+    back: string;
     tech: string;
     addProject: string;
     removeProject: string;
     removeProjectConfirm: string;
     newProjectTitle: string;
     newProjectBody: string;
+    newProjectContent: string;
     titlePlaceholder: string;
     bodyPlaceholder: string;
+    contentPlaceholder: string;
     linkPlaceholder: string;
     tagsPlaceholder: string;
     githubPlaceholder: string;
@@ -440,6 +733,22 @@ export type Dictionary = {
     fieldLabelPlaceholder: string;
     fieldValuePlaceholder: string;
   };
+  auth: {
+    signIn: string;
+    signUp: string;
+    signOut: string;
+    account: string;
+    signedIn: string;
+    email: string;
+    password: string;
+    working: string;
+    signInHint: string;
+    syncHint: string;
+    checkEmail: string;
+    needAccount: string;
+    hasAccount: string;
+    ownerOnly: string;
+  };
   posts: {
     addPost: string;
     removePost: string;
@@ -447,6 +756,9 @@ export type Dictionary = {
     newPostTitle: string;
     newPostExcerpt: string;
     newPostBody: string;
+    editContent: string;
+    contentLabel: string;
+    emptyContentHint: string;
     titlePlaceholder: string;
     excerptPlaceholder: string;
     bodyPlaceholder: string;
@@ -459,6 +771,9 @@ export type Dictionary = {
     pickModuleTitle: string;
     pickModuleHint: string;
     pickModuleEmpty: string;
+    saveToVault: string;
+    savedToVault: string;
+    newVaultCard: string;
     selectHint: string;
     preview: string;
     previewEditHint: string;

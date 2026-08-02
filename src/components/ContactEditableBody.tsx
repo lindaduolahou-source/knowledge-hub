@@ -23,6 +23,7 @@ import {
   loadContactLinks,
   removeContactLink,
   removeContactLinkField,
+  reorderContactLinkFields,
   reorderContactLinks,
   setContactLinkCoreSlots,
   type ContactCoreSlot,
@@ -38,6 +39,7 @@ import {
   resolveModuleContent,
   saveModuleContent,
 } from "@/lib/module-content";
+import { trashContactExtraField, trashCoreSlot } from "@/lib/field-trash";
 
 const VALUE_DEFAULTS: Record<"email" | "github", string> = {
   email: "hello@example.com",
@@ -176,6 +178,7 @@ export function ContactEditableBody({
   }
 
   function handleRemoveField(linkId: string, fieldId: string) {
+    trashContactExtraField(linkId, fieldId);
     setLinks(removeContactLinkField(links, linkId, fieldId));
   }
 
@@ -186,6 +189,11 @@ export function ContactEditableBody({
       setPendingRemoveCore(null);
       return;
     }
+    trashCoreSlot(
+      { scope: "contact", linkId: pendingRemoveCore.linkId },
+      pendingRemoveCore.slot,
+      pendingRemoveCore.slot,
+    );
     const next = removeCoreSlot(
       link.coreSlots ?? [...CONTACT_CORE_SLOTS],
       pendingRemoveCore.slot,
@@ -210,17 +218,6 @@ export function ContactEditableBody({
 
   return (
     <>
-      <EditableModuleField
-        locale={locale}
-        fieldKey="contact:note"
-        defaultText={dict.contact.note}
-        editHint={dict.home.noteEdit}
-        placeholder={dict.home.pagePlaceholder}
-        saveHint={dict.home.pageSaveHint}
-        rows={3}
-        className="mb-8 max-w-xl"
-      />
-
       <div className="space-y-4">
         <SortableList count={links.length} onReorder={handleReorder}>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -333,6 +330,11 @@ export function ContactEditableBody({
                       onAdd={() => void handleAddField(link.id)}
                       onRemove={(fieldId) =>
                         handleRemoveField(link.id, fieldId)
+                      }
+                      onReorder={(from, to) =>
+                        setLinks(
+                          reorderContactLinkFields(links, link.id, from, to),
+                        )
                       }
                     />
                   </div>

@@ -14,7 +14,8 @@ export function LanguageSwitcher({ locale }: LanguageSwitcherProps) {
   const isLanding =
     pathname === `/${locale}` || pathname === `/${locale}/`;
   const isExplore = pathname.startsWith(`/${locale}/explore`);
-  const immersive = isLanding || isExplore;
+  const isHub = pathname.startsWith(`/${locale}/hub`);
+  const immersive = isLanding || isExplore || isHub;
 
   function getHref(target: Locale) {
     const segments = pathname.split("/").filter(Boolean);

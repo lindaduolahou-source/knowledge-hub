@@ -68,6 +68,25 @@ tags: ["Tag1", "Tag2"]
 }
 ```
 
+## Supabase 云端同步（可选）
+
+编辑内容默认存在本机浏览器。接入 [Supabase](https://supabase.com) 后，登录即可跨设备同步。
+
+1. 在 Supabase 新建项目  
+2. **SQL Editor** 运行仓库里的 `supabase/schema.sql`  
+3. **Authentication → Providers → Email** 开启邮箱登录  
+   - 先注册你自己的账号，然后建议关闭公开注册  
+4. **Authentication → URL Configuration**  
+   - Site URL：`http://127.0.0.1:3000`（生产环境改成你的域名）  
+   - Redirect URLs 增加：`http://127.0.0.1:3000/auth/callback` 与生产回调地址  
+5. 复制 `.env.example` 为 `.env.local`，填入 Project URL 与 anon key  
+6. （推荐）设置 `NEXT_PUBLIC_SITE_OWNER_EMAIL=你的邮箱`，限制仅站长可登录  
+7. `npm run dev`，右上角 **登录** → 编辑内容会自动写入 `site_stores` 表  
+
+未配置环境变量时，站点行为与原来一致（仅 localStorage）。
+
+在 Vercel 部署时，把同样的环境变量加到 Project Settings → Environment Variables。
+
 ## 部署
 
 推荐部署到 [Vercel](https://vercel.com)：

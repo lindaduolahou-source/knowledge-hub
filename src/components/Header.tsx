@@ -8,6 +8,7 @@ import type { ModuleId } from "@/lib/modules";
 import { isBuiltinModuleId } from "@/lib/modules";
 import { useModuleLayout } from "@/hooks/useModuleLayout";
 import { useModuleTitle } from "@/hooks/useModuleTitle";
+import { AuthButton } from "./AuthButton";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ShareCardModulePicker } from "./ShareCardModulePicker";
 import { TrashButton } from "./TrashButton";
@@ -23,7 +24,7 @@ const navItems: {
   moduleId?: ModuleId;
 }[] = [
   { key: "home", href: "" },
-  { key: "explore", href: "/explore" },
+  { key: "explore", href: "/hub" },
   { key: "space", href: "/space", moduleId: "space" },
   { key: "roadmap", href: "/roadmap", moduleId: "roadmap" },
   { key: "blog", href: "/blog", moduleId: "knowledge" },
@@ -52,7 +53,8 @@ export function Header({ locale, dict }: HeaderProps) {
   const isLanding =
     pathname === `/${locale}` || pathname === `/${locale}/`;
   const isExplore = pathname.startsWith(`/${locale}/explore`);
-  const immersive = isLanding || isExplore;
+  const isHub = pathname.startsWith(`/${locale}/hub`);
+  const immersive = isLanding || isExplore || isHub;
 
   const visibleNav = navItems.filter((item) => {
     // Explore is shown as a dedicated action button beside the share-card control.
@@ -111,7 +113,7 @@ export function Header({ locale, dict }: HeaderProps) {
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <Link
-            href={`/${locale}/explore`}
+            href={`/${locale}/hub`}
             className={`cursor-pointer rounded-full px-3 py-1.5 text-xs transition-colors duration-200 ${
               immersive
                 ? "border border-white/35 text-white hover:bg-white hover:text-black"
@@ -126,6 +128,7 @@ export function Header({ locale, dict }: HeaderProps) {
             immersive={immersive}
           />
           <TrashButton locale={locale} dict={dict} immersive={immersive} />
+          <AuthButton locale={locale} dict={dict} immersive={immersive} />
           <LanguageSwitcher locale={locale} />
         </div>
       </div>

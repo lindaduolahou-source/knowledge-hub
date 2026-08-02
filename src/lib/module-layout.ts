@@ -6,6 +6,7 @@ import {
   modules,
   type ModuleConfig,
 } from "./modules";
+import { moveIndex } from "./reorder";
 import {
   findTrashModule,
   pushModuleToTrash,
@@ -185,6 +186,22 @@ export function createCustomModule(): string {
   state.activeIds = [...state.activeIds, id];
   writeLayout(state);
   return id;
+}
+
+/** Reorder visible modules on the explore / landing decks. */
+export function reorderActiveModules(from: number, to: number) {
+  const state = loadModuleLayout();
+  if (
+    from === to ||
+    from < 0 ||
+    to < 0 ||
+    from >= state.activeIds.length ||
+    to >= state.activeIds.length
+  ) {
+    return;
+  }
+  state.activeIds = moveIndex(state.activeIds, from, to);
+  writeLayout(state);
 }
 
 export function isCustomModuleId(id: string) {

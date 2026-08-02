@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { Project } from "@/lib/content";
@@ -17,6 +19,7 @@ import {
   PROJECT_CORE_SLOTS,
   PROJECT_FOCUS_EDIT_EVENT,
   PROJECT_ITEMS_EVENT,
+  projectDetailHref,
   projectFromContent,
   removeProjectItem,
   reorderProjectItems,
@@ -30,6 +33,8 @@ import {
   restoreCoreSlotOrAddCustom,
 } from "@/lib/core-slots";
 import { cloneExtraFields, createExtraFieldId } from "@/lib/extra-fields";
+import { trashCoreSlot, trashExtraField } from "@/lib/field-trash";
+import { removeTrashItem } from "@/lib/trash";
 
 interface EditableProjectGridProps {
   locale: Locale;
@@ -66,6 +71,7 @@ export function EditableProjectGrid({
   projects = [],
   hideAdd = false,
 }: EditableProjectGridProps) {
+  const router = useRouter();
   const defaults = projects.map(projectFromContent);
   const [items, setItems] = useState<EditableProject[]>(defaults);
   const [ready, setReady] = useState(false);
@@ -79,6 +85,16 @@ export function EditableProjectGrid({
   >(null);
   const [pendingRemoveCoreSlot, setPendingRemoveCoreSlot] =
     useState<ProjectCoreSlot | null>(null);
+  const sessionFieldTrashIds = useRef<string[]>([]);
+
+  function discardSessionFieldTrash() {
+    for (const id of sessionFieldTrashIds.current) removeTrashItem(id);
+    sessionFieldTrashIds.current = [];
+  }
+
+  function keepSessionFieldTrash() {
+    sessionFieldTrashIds.current = [];
+  }
 
   useEffect(() => {
     function refresh() {
@@ -116,11 +132,13 @@ export function EditableProjectGrid({
   }, [locale, moduleId]);
 
   function startEdit(item: EditableProject) {
+    discardSessionFieldTrash();
     setEditingSlug(item.slug);
     setDraft(draftFromItem(item));
   }
 
   function cancelEdit() {
+    discardSessionFieldTrash();
     setEditingSlug(null);
     setDraft(null);
     setPendingRemoveFieldId(null);
@@ -129,6 +147,7 @@ export function EditableProjectGrid({
 
   function commitEdit() {
     if (!editingSlug || !draft) return;
+    keepSessionFieldTrash();
     setItems(
       updateProjectItem(
         moduleId,
@@ -172,16 +191,24 @@ export function EditableProjectGrid({
       {
         title: dict.projects.newProjectTitle,
         description: dict.projects.newProjectBody,
+        content: dict.projects.newProjectContent,
       },
       defaults,
     );
     setItems(next);
-    const created = next.find((item) => item.slug === slug);
-    if (created) startEdit(created);
+    router.push(`${projectDetailHref(locale, moduleId, slug)}?edit=1`);
   }
 
   function confirmRemoveField() {
-    if (!draft || !pendingRemoveFieldId) return;
+    if (!draft || !pendingRemoveFieldId || !editingSlug) return;
+    const field = draft.fields.find((row) => row.id === pendingRemoveFieldId);
+    if (field) {
+      const entry = trashExtraField(
+        { scope: "project", moduleId, slug: editingSlug },
+        field,
+      );
+      sessionFieldTrashIds.current.push(entry.id);
+    }
     setDraft({
       ...draft,
       fields: draft.fields.filter((field) => field.id !== pendingRemoveFieldId),
@@ -190,7 +217,13 @@ export function EditableProjectGrid({
   }
 
   function confirmRemoveCoreSlot() {
-    if (!draft || !pendingRemoveCoreSlot) return;
+    if (!draft || !pendingRemoveCoreSlot || !editingSlug) return;
+    const entry = trashCoreSlot(
+      { scope: "project", moduleId, slug: editingSlug },
+      pendingRemoveCoreSlot,
+      pendingRemoveCoreSlot,
+    );
+    sessionFieldTrashIds.current.push(entry.id);
     setDraft({
       ...draft,
       coreSlots: removeCoreSlot(draft.coreSlots, pendingRemoveCoreSlot),
@@ -254,7 +287,12 @@ export function EditableProjectGrid({
               <div className="mb-3 flex items-start gap-2">
                 {!editing && core.includes("title") && (
                   <h3 className="min-w-0 flex-1 text-lg font-medium tracking-tight text-foreground">
-                    {project.title || dict.projects.titlePlaceholder}
+                    <Link
+                      href={projectDetailHref(locale, moduleId, project.slug)}
+                      className="transition-colors hover:text-accent"
+                    >
+                      {project.title || dict.projects.titlePlaceholder}
+                    </Link>
                   </h3>
                 )}
                 {(editing || !core.includes("title")) && (
@@ -386,6 +424,20 @@ export function EditableProjectGrid({
                     </a>
                   )}
                   <ExtraFieldsView fields={project.fields} copy={dict.common} />
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <Link
+                      href={projectDetailHref(locale, moduleId, project.slug)}
+                      className="font-mono text-xs text-accent hover:underline"
+                    >
+                      {dict.projects.readMore} →
+                    </Link>
+                    <Link
+                      href={`${projectDetailHref(locale, moduleId, project.slug)}?edit=1`}
+                      className="font-mono text-xs text-muted transition-colors hover:text-accent hover:underline"
+                    >
+                      {dict.projects.editContent} →
+                    </Link>
+                  </div>
                 </>
               )}
               </SortableItem>

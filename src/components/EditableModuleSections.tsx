@@ -21,6 +21,7 @@ import {
   MODULE_SECTIONS_EVENT,
   removeModuleSection,
   removeModuleSectionField,
+  reorderModuleSectionFields,
   reorderModuleSections,
   SECTION_CORE_SLOTS,
   sectionBodyKey,
@@ -33,6 +34,7 @@ import {
   type SectionCoreSlot,
   type SectionVariant,
 } from "@/lib/module-sections";
+import { trashCoreSlot, trashSectionExtraField } from "@/lib/field-trash";
 
 interface EditableModuleSectionsProps {
   locale: Locale;
@@ -163,6 +165,7 @@ export function EditableModuleSections({
   }
 
   function handleRemoveField(sectionId: string, fieldId: string) {
+    trashSectionExtraField(moduleId, sectionId, fieldId);
     setSections(
       removeModuleSectionField(moduleId, sections, sectionId, fieldId),
     );
@@ -177,6 +180,15 @@ export function EditableModuleSections({
       setPendingRemoveCore(null);
       return;
     }
+    trashCoreSlot(
+      {
+        scope: "section",
+        moduleId,
+        sectionId: pendingRemoveCore.sectionId,
+      },
+      pendingRemoveCore.slot,
+      pendingRemoveCore.slot,
+    );
     const next = removeCoreSlot(
       section.coreSlots ?? [...SECTION_CORE_SLOTS],
       pendingRemoveCore.slot,
@@ -307,6 +319,17 @@ export function EditableModuleSections({
                     onAdd={() => void handleAddField(section.id)}
                     onRemove={(fieldId) =>
                       handleRemoveField(section.id, fieldId)
+                    }
+                    onReorder={(from, to) =>
+                      setSections(
+                        reorderModuleSectionFields(
+                          moduleId,
+                          sections,
+                          section.id,
+                          from,
+                          to,
+                        ),
+                      )
                     }
                     accentColor={accentColor}
                   />

@@ -29,6 +29,13 @@ interface ModuleShareCardLauncherProps {
   sectionDefaults?: ModuleSectionDefault[];
   immersive?: boolean;
   floating?: boolean;
+  hideTrigger?: boolean;
+  controlledOpen?: boolean;
+  onControlledOpenChange?: (open: boolean) => void;
+  vaultCardId?: string | null;
+  onVaultSaved?: () => void;
+  backLabel?: string;
+  onBack?: () => void;
 }
 
 export function ModuleShareCardLauncher({
@@ -41,6 +48,13 @@ export function ModuleShareCardLauncher({
   sectionDefaults = [],
   immersive = false,
   floating = false,
+  hideTrigger = false,
+  controlledOpen,
+  onControlledOpenChange,
+  vaultCardId = null,
+  onVaultSaved,
+  backLabel,
+  onBack,
 }: ModuleShareCardLauncherProps) {
   const defaultLayout = sectionDefaults.map(
     ({ id, variant, fields, coreSlots }) => ({
@@ -124,6 +138,13 @@ export function ModuleShareCardLauncher({
       fields={fields}
       immersive={immersive}
       floating={floating}
+      hideTrigger={hideTrigger}
+      controlledOpen={controlledOpen}
+      onControlledOpenChange={onControlledOpenChange}
+      vaultCardId={vaultCardId}
+      onVaultSaved={onVaultSaved}
+      backLabel={backLabel}
+      onBack={onBack}
     />
   );
 }

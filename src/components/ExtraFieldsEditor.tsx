@@ -3,6 +3,8 @@
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { ExtraField } from "@/lib/extra-fields";
 import { createExtraFieldId } from "@/lib/extra-fields";
+import { moveIndex } from "@/lib/reorder";
+import { DragHandle, SortableItem, SortableList } from "@/components/SortableReorder";
 
 type FieldCopy = Pick<
   Dictionary["common"],
@@ -12,6 +14,7 @@ type FieldCopy = Pick<
   | "newFieldValue"
   | "fieldLabelPlaceholder"
   | "fieldValuePlaceholder"
+  | "reorder"
 >;
 
 interface ExtraFieldsEditorProps {
@@ -52,43 +55,55 @@ export function ExtraFieldsEditor({
     );
   }
 
+  function handleReorder(from: number, to: number) {
+    onChange(moveIndex(fields, from, to));
+  }
+
   return (
     <div className="space-y-2 border-t border-white/10 pt-3">
-      {fields.map((field) => (
-        <div
-          key={field.id}
-          className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
-        >
-          <div className="mb-2 flex items-center gap-2">
-            <input
-              value={field.label}
-              onChange={(event) =>
-                patchField(field.id, { label: event.target.value })
-              }
-              placeholder={copy.fieldLabelPlaceholder}
-              className="min-w-0 flex-1 bg-transparent text-xs text-muted outline-none placeholder:text-muted/40"
-            />
-            <button
-              type="button"
-              onClick={() => onRequestRemove(field.id)}
-              className="cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
-              aria-label={copy.removeField}
-              title={copy.removeField}
+      <SortableList count={fields.length} onReorder={handleReorder}>
+        <div className="space-y-2">
+          {fields.map((field, index) => (
+            <SortableItem
+              key={field.id}
+              index={index}
+              className="group/item rounded-lg border border-white/10 bg-white/[0.03] p-3"
             >
-              ×
-            </button>
-          </div>
-          <textarea
-            value={field.value}
-            onChange={(event) =>
-              patchField(field.id, { value: event.target.value })
-            }
-            rows={2}
-            placeholder={copy.fieldValuePlaceholder}
-            className="w-full resize-y bg-transparent text-sm text-foreground outline-none placeholder:text-muted/40"
-          />
+              <div className="mb-2 flex items-center gap-2">
+                <input
+                  value={field.label}
+                  onChange={(event) =>
+                    patchField(field.id, { label: event.target.value })
+                  }
+                  placeholder={copy.fieldLabelPlaceholder}
+                  className="min-w-0 flex-1 bg-transparent text-xs text-muted outline-none placeholder:text-muted/40"
+                />
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <DragHandle index={index} label={copy.reorder} />
+                  <button
+                    type="button"
+                    onClick={() => onRequestRemove(field.id)}
+                    className="cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
+                    aria-label={copy.removeField}
+                    title={copy.removeField}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={field.value}
+                onChange={(event) =>
+                  patchField(field.id, { value: event.target.value })
+                }
+                rows={2}
+                placeholder={copy.fieldValuePlaceholder}
+                className="w-full resize-y bg-transparent text-sm text-foreground outline-none placeholder:text-muted/40"
+              />
+            </SortableItem>
+          ))}
         </div>
-      ))}
+      </SortableList>
       <button
         type="button"
         onClick={onAddClick ?? addField}

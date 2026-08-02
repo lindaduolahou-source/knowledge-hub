@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import type { PostMeta } from "@/lib/content";
@@ -32,6 +33,8 @@ import {
   restoreCoreSlotOrAddCustom,
 } from "@/lib/core-slots";
 import { cloneExtraFields, createExtraFieldId } from "@/lib/extra-fields";
+import { trashCoreSlot, trashExtraField } from "@/lib/field-trash";
+import { removeTrashItem } from "@/lib/trash";
 
 interface EditablePostGridProps {
   locale: Locale;
@@ -61,6 +64,7 @@ export function EditablePostGrid({
   readMore,
   hideAdd = false,
 }: EditablePostGridProps) {
+  const router = useRouter();
   const defaults = posts.map((post) => postFromMeta(post));
   const [items, setItems] = useState<EditablePost[]>(defaults);
   const [ready, setReady] = useState(false);
@@ -74,6 +78,16 @@ export function EditablePostGrid({
   >(null);
   const [pendingRemoveCoreSlot, setPendingRemoveCoreSlot] =
     useState<PostCoreSlot | null>(null);
+  const sessionFieldTrashIds = useRef<string[]>([]);
+
+  function discardSessionFieldTrash() {
+    for (const id of sessionFieldTrashIds.current) removeTrashItem(id);
+    sessionFieldTrashIds.current = [];
+  }
+
+  function keepSessionFieldTrash() {
+    sessionFieldTrashIds.current = [];
+  }
 
   useEffect(() => {
     function refresh() {
@@ -113,11 +127,13 @@ export function EditablePostGrid({
   }, [locale, collection]);
 
   function startEdit(item: EditablePost) {
+    discardSessionFieldTrash();
     setEditingSlug(item.slug);
     setDraft(draftFromItem(item));
   }
 
   function cancelEdit() {
+    discardSessionFieldTrash();
     setEditingSlug(null);
     setDraft(null);
     setPendingRemoveFieldId(null);
@@ -126,6 +142,7 @@ export function EditablePostGrid({
 
   function commitEdit() {
     if (!editingSlug || !draft) return;
+    keepSessionFieldTrash();
     setItems(
       updatePostItem(
         collection,
@@ -175,8 +192,7 @@ export function EditablePostGrid({
       defaults,
     );
     setItems(next);
-    const created = next.find((item) => item.slug === slug);
-    if (created) startEdit(created);
+    router.push(`/${locale}/${hrefPrefix}/${slug}?edit=1`);
   }
 
   function handleReorder(from: number, to: number) {
@@ -186,7 +202,15 @@ export function EditablePostGrid({
   }
 
   function confirmRemoveField() {
-    if (!draft || !pendingRemoveFieldId) return;
+    if (!draft || !pendingRemoveFieldId || !editingSlug) return;
+    const field = draft.fields.find((row) => row.id === pendingRemoveFieldId);
+    if (field) {
+      const entry = trashExtraField(
+        { scope: "post", collection, slug: editingSlug },
+        field,
+      );
+      sessionFieldTrashIds.current.push(entry.id);
+    }
     setDraft({
       ...draft,
       fields: draft.fields.filter((field) => field.id !== pendingRemoveFieldId),
@@ -195,7 +219,13 @@ export function EditablePostGrid({
   }
 
   function confirmRemoveCoreSlot() {
-    if (!draft || !pendingRemoveCoreSlot) return;
+    if (!draft || !pendingRemoveCoreSlot || !editingSlug) return;
+    const entry = trashCoreSlot(
+      { scope: "post", collection, slug: editingSlug },
+      pendingRemoveCoreSlot,
+      pendingRemoveCoreSlot,
+    );
+    sessionFieldTrashIds.current.push(entry.id);
     setDraft({
       ...draft,
       coreSlots: removeCoreSlot(draft.coreSlots, pendingRemoveCoreSlot),
@@ -420,12 +450,20 @@ export function EditablePostGrid({
                     </p>
                   )}
                   <ExtraFieldsView fields={post.fields} copy={dict.common} />
-                  <Link
-                    href={href}
-                    className="mt-3 inline-block font-mono text-xs text-accent hover:underline"
-                  >
-                    {readMore} →
-                  </Link>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <Link
+                      href={href}
+                      className="font-mono text-xs text-accent hover:underline"
+                    >
+                      {readMore} →
+                    </Link>
+                    <Link
+                      href={`${href}?edit=1`}
+                      className="font-mono text-xs text-muted transition-colors hover:text-accent hover:underline"
+                    >
+                      {dict.posts.editContent} →
+                    </Link>
+                  </div>
                 </>
               )}
               </SortableItem>

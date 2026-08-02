@@ -33,6 +33,11 @@ import {
   serializeShareCardDraft,
   type ShareCardDraft,
 } from "@/lib/share-card-draft";
+import {
+  getVaultCard,
+  saveDraftToVault,
+  updateVaultCard,
+} from "@/lib/share-card-vault";
 
 interface ShareCardLauncherProps {
   locale: Locale;
@@ -45,6 +50,17 @@ interface ShareCardLauncherProps {
   immersive?: boolean;
   /** Pin the open button to the viewport (module pages). */
   floating?: boolean;
+  /** Hide the open trigger (vault page hosts its own controls). */
+  hideTrigger?: boolean;
+  /** Controlled open state for vault / external hosts. */
+  controlledOpen?: boolean;
+  onControlledOpenChange?: (open: boolean) => void;
+  /** When set, load/save against the card vault instead of the module draft. */
+  vaultCardId?: string | null;
+  onVaultSaved?: () => void;
+  /** When set, show a back control; × / backdrop / Esc also return via this. */
+  backLabel?: string;
+  onBack?: () => void;
 }
 
 function readSelection(): string {
@@ -97,8 +113,20 @@ export function ShareCardLauncher({
   fields,
   immersive = false,
   floating = false,
+  hideTrigger = false,
+  controlledOpen,
+  onControlledOpenChange,
+  vaultCardId = null,
+  onVaultSaved,
+  backLabel,
+  onBack,
 }: ShareCardLauncherProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  function setOpen(next: boolean) {
+    onControlledOpenChange?.(next);
+    if (controlledOpen === undefined) setInternalOpen(next);
+  }
   const [mounted, setMounted] = useState(false);
   const [ready, setReady] = useState(false);
   const [title, setTitle] = useState(titleDefault);
@@ -201,7 +229,8 @@ export function ShareCardLauncher({
     let nextStickers: ShareCardSticker[] = [];
     let nextTypography = DEFAULT_SHARE_CARD_TYPOGRAPHY;
 
-    const draft = loadShareCardDraft(moduleId);
+    const vaultCard = vaultCardId ? getVaultCard(vaultCardId) : null;
+    const draft = vaultCard?.draft ?? loadShareCardDraft(moduleId);
     if (draft) {
       nextCardTitle = draft.cardTitle;
       nextCardBody = draft.cardBody;
@@ -270,7 +299,7 @@ export function ShareCardLauncher({
   }
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || hideTrigger || vaultCardId) return;
 
     function onOpenEvent() {
       openFromHeaderPicker();
@@ -298,7 +327,14 @@ export function ShareCardLauncher({
       window.removeEventListener("knowledge-hub:open-share-card", onOpenEvent);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, moduleId]);
+  }, [mounted, moduleId, hideTrigger, vaultCardId]);
+
+  useEffect(() => {
+    if (!mounted || !vaultCardId || controlledOpen !== true) return;
+    setStatus(null);
+    loadShareState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, vaultCardId, controlledOpen]);
 
   const currentDraft = useMemo<ShareCardDraft>(
     () => ({
@@ -332,13 +368,34 @@ export function ShareCardLauncher({
   dirtyRef.current = dirty;
 
   function persistDraft(draft: ShareCardDraft = currentDraft) {
-    saveShareCardDraft(moduleId, draft);
+    if (vaultCardId) {
+      updateVaultCard(vaultCardId, {
+        name: draft.cardTitle.trim() || undefined,
+        moduleIcon,
+        draft,
+      });
+      onVaultSaved?.();
+    } else {
+      saveShareCardDraft(moduleId, draft);
+    }
     setSavedBaseline(serializeShareCardDraft(draft));
   }
 
   function handleSaveChanges() {
     persistDraft();
     setStatus(dict.shareCard.saved);
+  }
+
+  function handleSaveToVault() {
+    persistDraft();
+    saveDraftToVault({
+      moduleId,
+      moduleIcon,
+      draft: currentDraft,
+      cardId: vaultCardId,
+    });
+    onVaultSaved?.();
+    setStatus(dict.shareCard.savedToVault);
   }
 
   function closeDialog() {
@@ -348,21 +405,32 @@ export function ShareCardLauncher({
     setStatus(null);
   }
 
-  function requestClose() {
-    if (dirtyRef.current) {
-      setExitPromptOpen(true);
+  function finishLeave() {
+    if (onBack) {
+      setExitPromptOpen(false);
+      setSelectedStickerId(null);
+      setStatus(null);
+      onBack();
       return;
     }
     closeDialog();
   }
 
+  function requestClose() {
+    if (dirtyRef.current) {
+      setExitPromptOpen(true);
+      return;
+    }
+    finishLeave();
+  }
+
   function confirmSaveAndExit() {
     persistDraft();
-    closeDialog();
+    finishLeave();
   }
 
   function discardAndExit() {
-    closeDialog();
+    finishLeave();
   }
 
   useEffect(() => {
@@ -607,17 +675,32 @@ export function ShareCardLauncher({
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
-                <p className="text-sm font-medium text-white">
-                  {dict.shareCard.title}
-                </p>
-                <button
-                  type="button"
-                  onClick={requestClose}
-                  className="cursor-pointer rounded-full p-1.5 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
-                  aria-label={dict.shareCard.close}
-                >
-                  <X size={16} />
-                </button>
+                <div className="flex min-w-0 items-center gap-3">
+                  {onBack && backLabel ? (
+                    <button
+                      type="button"
+                      onClick={requestClose}
+                      className="cursor-pointer rounded-full border border-white/20 px-2.5 py-1 text-[11px] text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                    >
+                      ← {backLabel}
+                    </button>
+                  ) : null}
+                  <p className="text-sm font-medium text-white">
+                    {dict.shareCard.title}
+                  </p>
+                </div>
+                {!onBack ? (
+                  <button
+                    type="button"
+                    onClick={requestClose}
+                    className="cursor-pointer rounded-full p-1.5 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                    aria-label={dict.shareCard.close}
+                  >
+                    <X size={16} />
+                  </button>
+                ) : (
+                  <span className="w-8" aria-hidden />
+                )}
               </div>
 
               <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)]">
@@ -1198,6 +1281,16 @@ export function ShareCardLauncher({
                     >
                       {dict.shareCard.saveChanges}
                     </button>
+                    {!vaultCardId && (
+                      <button
+                        type="button"
+                        disabled={busy || !canExport}
+                        onClick={handleSaveToVault}
+                        className="cursor-pointer rounded-full border border-accent/40 bg-accent/10 px-4 py-2 text-xs text-accent transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {dict.shareCard.saveToVault}
+                      </button>
+                    )}
                     {status && (
                       <span className="text-xs text-white/45">{status}</span>
                     )}
@@ -1239,13 +1332,14 @@ export function ShareCardLauncher({
 
   return (
     <>
-      {floating ? (
-        <div className="pointer-events-none fixed top-[4.75rem] right-4 z-40 sm:right-6">
-          <div className="pointer-events-auto">{openButton}</div>
-        </div>
-      ) : (
-        openButton
-      )}
+      {!hideTrigger &&
+        (floating ? (
+          <div className="pointer-events-none fixed top-[4.75rem] right-4 z-40 sm:right-6">
+            <div className="pointer-events-auto">{openButton}</div>
+          </div>
+        ) : (
+          openButton
+        ))}
       {dialog}
       <ConfirmDialog
         open={exitPromptOpen}

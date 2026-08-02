@@ -257,6 +257,24 @@ export function removeModuleSectionField(
   return sections;
 }
 
+export function reorderModuleSectionFields(
+  moduleId: string,
+  current: ModuleSectionDef[],
+  sectionId: string,
+  from: number,
+  to: number,
+): ModuleSectionDef[] {
+  const sections = current.map((section) => {
+    if (section.id !== sectionId) return section;
+    const fields = moveIndex(section.fields ?? [], from, to);
+    if (fields === (section.fields ?? [])) return section;
+    return { ...section, fields };
+  });
+  if (sections.every((section, i) => section === current[i])) return current;
+  saveModuleSections(moduleId, sections);
+  return sections;
+}
+
 function snapshotSectionTexts(
   moduleId: string,
   section: ModuleSectionDef,

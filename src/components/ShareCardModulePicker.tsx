@@ -66,14 +66,7 @@ export function ShareCardModulePicker({
 
   function pickModule(module: ModuleConfig) {
     setOpen(false);
-    const targetPath = `/${locale}${module.href}`;
-    const currentPath = window.location.pathname.replace(/\/$/, "") || "/";
-    const normalizedTarget = targetPath.replace(/\/$/, "") || "/";
-    if (currentPath === normalizedTarget) {
-      window.dispatchEvent(new CustomEvent("knowledge-hub:open-share-card"));
-      return;
-    }
-    router.push(`${targetPath}?shareCard=1`);
+    router.push(`/${locale}/hub/cards?new=${encodeURIComponent(module.id)}`);
   }
 
   const dialog =

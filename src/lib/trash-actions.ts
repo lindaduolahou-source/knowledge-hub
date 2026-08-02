@@ -11,6 +11,12 @@ import {
 import { restorePostItem } from "./post-edits";
 import { restoreProjectItem } from "./project-edits";
 import { restoreRoadmapItem } from "./roadmap-edits";
+import { restoreFieldTrashItem } from "./field-trash";
+import { restoreMindMap } from "./mindmap-edits";
+import { restoreMindMapLibraryTemplate } from "./mindmap-library";
+import { restoreMindMapLibraryStyle } from "./mindmap-style-library";
+import { restoreLibraryTemplate } from "./share-card-library";
+import { restoreVaultCard } from "./share-card-vault";
 import { purgeTocNotesForModule } from "./toc-notes";
 import {
   clearTrash,
@@ -32,6 +38,18 @@ export function restoreTrashContent(item: TrashItem): boolean {
       return restoreRoadmapItem(item.moduleId, item.snapshot);
     case "contact":
       return restoreContactLink(item.link, item.texts);
+    case "vault-card":
+      return restoreVaultCard(item.card);
+    case "card-template":
+      return restoreLibraryTemplate(item.template);
+    case "mindmap-template":
+      return restoreMindMapLibraryTemplate(item.template);
+    case "mindmap-style":
+      return restoreMindMapLibraryStyle(item.style);
+    case "field":
+      return restoreFieldTrashItem(item);
+    case "mindmap":
+      return restoreMindMap(item.moduleId, item.snapshot);
     case "module":
       return false;
     default:
@@ -60,6 +78,12 @@ export function permanentlyPurgeTrashItem(item: TrashItem) {
     case "project":
     case "post":
     case "roadmap":
+    case "vault-card":
+    case "card-template":
+    case "mindmap-template":
+    case "mindmap-style":
+    case "field":
+    case "mindmap":
       break;
     default:
       break;

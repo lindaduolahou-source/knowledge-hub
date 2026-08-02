@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ArticleShareCard } from "@/components/ArticleShareCard";
 import { EditableArticlePage } from "@/components/EditableArticlePage";
 import { isValidLocale, type Locale } from "@/i18n/config";
@@ -51,17 +52,21 @@ export default async function ModuleArticlePage({
         content={post.content}
         tags={post.tags}
       />
-      <EditableArticlePage
-        locale={loc}
-        dict={dict}
-        collection={collection}
-        hrefPrefix={hrefPrefix}
-        backHref={backHref}
-        backLabel={
-          loc === "zh" ? `返回${moduleTitle}` : `Back to ${moduleTitle}`
-        }
-        post={post}
-      />
+      <Suspense
+        fallback={<div className="h-64 animate-pulse rounded-lg bg-surface/40" />}
+      >
+        <EditableArticlePage
+          locale={loc}
+          dict={dict}
+          collection={collection}
+          hrefPrefix={hrefPrefix}
+          backHref={backHref}
+          backLabel={
+            loc === "zh" ? `返回${moduleTitle}` : `Back to ${moduleTitle}`
+          }
+          post={post}
+        />
+      </Suspense>
     </>
   );
 }

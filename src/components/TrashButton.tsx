@@ -71,6 +71,18 @@ function kindLabel(item: TrashItem, dict: Dictionary) {
       return dict.trash.kindRoadmap;
     case "contact":
       return dict.trash.kindContact;
+    case "vault-card":
+      return dict.trash.kindVaultCard;
+    case "card-template":
+      return dict.trash.kindCardTemplate;
+    case "field":
+      return dict.trash.kindField;
+    case "mindmap":
+      return dict.trash.kindMindMap;
+    case "mindmap-template":
+      return dict.trash.kindMindMapTemplate;
+    case "mindmap-style":
+      return dict.trash.kindMindMapStyle;
     default:
       return dict.trash.kindItem;
   }
@@ -90,6 +102,18 @@ function itemIcon(item: TrashItem) {
       return "◎";
     case "contact":
       return "✉";
+    case "vault-card":
+      return item.card.moduleIcon || "▭";
+    case "card-template":
+      return item.template.moduleIcon || "▤";
+    case "field":
+      return "▥";
+    case "mindmap":
+      return "◈";
+    case "mindmap-template":
+      return "▤";
+    case "mindmap-style":
+      return "╱";
     default:
       return "·";
   }

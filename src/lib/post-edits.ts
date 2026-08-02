@@ -43,6 +43,14 @@ export function postHrefPrefixForModule(moduleId: string): string {
   return `a/${moduleId}`;
 }
 
+export function postDetailHref(
+  locale: string,
+  moduleId: string,
+  slug: string,
+) {
+  return `/${locale}/${postHrefPrefixForModule(moduleId)}/${slug}`;
+}
+
 /** Module list page path for “back” from an article. */
 export function modulePageHref(locale: string, moduleId: string): string {
   if (moduleId === "knowledge") return `/${locale}/blog`;
