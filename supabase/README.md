@@ -41,10 +41,8 @@
 
 ## 同步规则（`src/lib/cloud-sync.ts`）
 
-**阶段 1（当前）**
-- 所有人（含未登录）进入网站时会读取 `site_stores` 公开默认内容
-- 仅站长邮箱登录后才会把编辑写入 `site_stores`
-
-**阶段 2（规划，见 `docs/APP_ROADMAP.md` + `user_stores.sql`）**
-- `site_stores`：官方默认
-- `user_stores`：每个登录用户自己的数据（按 `user_id` 隔离）
+**阶段 1 + 2（当前）**
+- 所有人（含未登录）读取 `site_stores` 公开默认内容
+- **站长邮箱**登录后编辑 → 写入 `site_stores`（更新所有人看到的默认）
+- **普通用户**登录后编辑 → 写入 `user_stores`（每人一份；首次登录从默认复制）
+- 请先运行 `schema.sql`、`seed.sql`，再运行 `user_stores.sql`

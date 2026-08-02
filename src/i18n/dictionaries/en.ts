@@ -379,7 +379,9 @@ export const en: Dictionary = {
     password: "Password",
     working: "Working…",
     signInHint: "Sign in to sync edits to the cloud database",
-    syncHint: "Cloud sync is on — sign in on another device to continue",
+    syncHint: "Private cloud sync is on — your data belongs only to you",
+    syncHintOwner:
+      "Owner mode: your edits update the defaults everyone sees",
     checkEmail: "Check your email to confirm (if confirmation is enabled)",
     needAccount: "Need an account? Sign up",
     hasAccount: "Have an account? Sign in",

@@ -8,16 +8,16 @@ import {
   keysForEvent,
   pullPublicDefaults,
   pushStore,
+  pushUserStore,
   syncOnLogin,
 } from "@/lib/cloud-sync";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 /**
- * Phase 1:
- * - Everyone (including visitors) pulls public defaults from `site_stores`.
- * - Only the site owner pushes edits back to `site_stores`.
- * Phase 2 will add per-user `user_stores` for normal accounts.
+ * - Everyone pulls official defaults from `site_stores`.
+ * - Site owner edits write to `site_stores` (product defaults).
+ * - Regular users edit write to `user_stores` (private per account).
  */
 export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
   const userRef = useRef<User | null>(null);
@@ -30,12 +30,19 @@ export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
 
     async function schedulePush(names: string[]) {
-      if (!isSiteOwner(userRef.current) || syncingRef.current) return;
+      const user = userRef.current;
+      if (!user || syncingRef.current) return;
       for (const name of names) {
         const existing = pushTimers.current.get(name);
         if (existing) window.clearTimeout(existing);
         const timer = window.setTimeout(() => {
-          void pushStore(supabase, name);
+          const current = userRef.current;
+          if (!current) return;
+          if (isSiteOwner(current)) {
+            void pushStore(supabase, name);
+          } else {
+            void pushUserStore(supabase, current.id, name);
+          }
           pushTimers.current.delete(name);
         }, 600);
         pushTimers.current.set(name, timer);
@@ -52,7 +59,6 @@ export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Visitors + owner: hydrate official defaults as soon as the app loads.
     void pullPublicDefaults(supabase);
 
     void supabase.auth.getSession().then(({ data }) => {
@@ -64,7 +70,10 @@ export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+      if (
+        session?.user &&
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION")
+      ) {
         void onSignedIn(session.user);
       }
       if (event === "SIGNED_OUT") {

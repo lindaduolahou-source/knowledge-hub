@@ -1,7 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getSiteOwnerEmail } from "@/lib/supabase/env";
 
-/** localStorage keys that sync to Supabase `site_stores`. */
+/** localStorage keys that sync to Supabase. */
 export const CLOUD_SYNC_KEYS = [
   "knowledge-hub:module-content:zh",
   "knowledge-hub:module-content:en",
@@ -106,6 +106,7 @@ function emitStoreRefresh() {
   window.dispatchEvent(new CustomEvent(CLOUD_SYNC_READY_EVENT));
 }
 
+/** Owner → official defaults table. */
 export async function pushStore(
   supabase: SupabaseClient,
   name: string,
@@ -118,6 +119,25 @@ export async function pushStore(
       updated_at: new Date().toISOString(),
     },
     { onConflict: "name" },
+  );
+  return { error: error?.message ?? null };
+}
+
+/** Regular user → private table. */
+export async function pushUserStore(
+  supabase: SupabaseClient,
+  userId: string,
+  name: string,
+): Promise<{ error: string | null }> {
+  const payload = readLocal(name);
+  const { error } = await supabase.from("user_stores").upsert(
+    {
+      user_id: userId,
+      name,
+      payload,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,name" },
   );
   return { error: error?.message ?? null };
 }
@@ -135,8 +155,8 @@ export async function pushAllStores(
 }
 
 /**
- * Phase 1: anyone (including logged-out visitors) pulls official defaults
- * from `site_stores` into localStorage so the product UI shows developer content.
+ * Anyone (including logged-out visitors) pulls official defaults from
+ * `site_stores` into localStorage.
  */
 export async function pullPublicDefaults(
   supabase: SupabaseClient,
@@ -166,16 +186,71 @@ export async function pullPublicDefaults(
 }
 
 /**
- * Owner login: cloud wins when present; otherwise upload local.
- * Non-owners only receive public defaults (no write to site_stores).
+ * Regular user login: load public defaults, then overlay / seed private stores.
+ */
+export async function syncUserOnLogin(
+  supabase: SupabaseClient,
+  user: User,
+): Promise<{ error: string | null; pulled: number; seeded: number }> {
+  const pub = await pullPublicDefaults(supabase);
+  if (pub.error) {
+    return { error: pub.error, pulled: 0, seeded: 0 };
+  }
+
+  const { data, error } = await supabase
+    .from("user_stores")
+    .select("name, payload")
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: error.message, pulled: 0, seeded: 0 };
+  }
+
+  const cloud = new Map(
+    (data ?? []).map((row) => [row.name as string, row.payload] as const),
+  );
+
+  // First login: copy current defaults into this user's private DB.
+  if (cloud.size === 0) {
+    let seeded = 0;
+    for (const name of CLOUD_SYNC_KEYS) {
+      const local = readLocal(name);
+      if (isEmptyPayload(local)) continue;
+      const result = await pushUserStore(supabase, user.id, name);
+      if (result.error) {
+        return { error: result.error, pulled: 0, seeded };
+      }
+      seeded += 1;
+    }
+    emitStoreRefresh();
+    return { error: null, pulled: 0, seeded };
+  }
+
+  let pulled = 0;
+  for (const name of CLOUD_SYNC_KEYS) {
+    if (!cloud.has(name)) continue;
+    writeLocal(name, cloud.get(name));
+    pulled += 1;
+  }
+  emitStoreRefresh();
+  return { error: null, pulled, seeded: 0 };
+}
+
+/**
+ * Owner login: sync official `site_stores` (cloud wins when present).
+ * Regular users: sync private `user_stores` (seeded from defaults on first login).
  */
 export async function syncOnLogin(
   supabase: SupabaseClient,
   user?: User | null,
 ): Promise<{ error: string | null; pulled: number; pushed: number }> {
   if (user && !isSiteOwner(user)) {
-    const pulled = await pullPublicDefaults(supabase);
-    return { error: pulled.error, pulled: pulled.pulled, pushed: 0 };
+    const result = await syncUserOnLogin(supabase, user);
+    return {
+      error: result.error,
+      pulled: result.pulled + result.seeded,
+      pushed: result.seeded,
+    };
   }
 
   const { data, error } = await supabase

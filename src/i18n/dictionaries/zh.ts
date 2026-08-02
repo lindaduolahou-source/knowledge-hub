@@ -360,7 +360,8 @@ export const zh = {
     password: "密码",
     working: "请稍候…",
     signInHint: "登录后，编辑内容会同步到云端数据库",
-    syncHint: "已开启云端同步：换设备登录可继续编辑",
+    syncHint: "已开启私人云同步：登录后内容只属于你自己",
+    syncHintOwner: "站长模式：你的编辑会更新所有人看到的默认内容",
     checkEmail: "请查收邮箱完成验证（若已开启邮箱确认）",
     needAccount: "还没有账号？注册",
     hasAccount: "已有账号？登录",
@@ -744,6 +745,7 @@ export type Dictionary = {
     working: string;
     signInHint: string;
     syncHint: string;
+    syncHintOwner: string;
     checkEmail: string;
     needAccount: string;
     hasAccount: string;

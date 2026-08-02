@@ -4,11 +4,9 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
+import { isSiteOwner } from "@/lib/cloud-sync";
 import { createClient } from "@/lib/supabase/client";
-import {
-  getSiteOwnerEmail,
-  isSupabaseConfigured,
-} from "@/lib/supabase/env";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 interface AuthButtonProps {
   locale: Locale;
@@ -51,14 +49,7 @@ export function AuthButton({ locale, dict, immersive }: AuthButtonProps) {
     setBusy(true);
     setMessage(null);
     const supabase = createClient();
-    const owner = getSiteOwnerEmail();
     const normalized = email.trim().toLowerCase();
-
-    if (owner && normalized !== owner) {
-      setMessage(dict.auth.ownerOnly);
-      setBusy(false);
-      return;
-    }
 
     try {
       if (mode === "signin") {
@@ -119,7 +110,11 @@ export function AuthButton({ locale, dict, immersive }: AuthButtonProps) {
           {user ? (
             <div className="space-y-3">
               <p className="truncate text-xs opacity-70">{user.email}</p>
-              <p className="text-[11px] opacity-55">{dict.auth.syncHint}</p>
+              <p className="text-[11px] opacity-55">
+                {isSiteOwner(user)
+                  ? dict.auth.syncHintOwner
+                  : dict.auth.syncHint}
+              </p>
               <button
                 type="button"
                 onClick={() => void handleSignOut()}
