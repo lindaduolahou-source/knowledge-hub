@@ -237,8 +237,9 @@ export async function syncUserOnLogin(
 }
 
 /**
- * Owner login: sync official `site_stores` (cloud wins when present).
- * Regular users: sync private `user_stores` (seeded from defaults on first login).
+ * Owner login: local non-empty stores are the source of truth and are pushed
+ * to `site_stores` (so new mind maps / edits are not wiped by older cloud rows).
+ * Empty local keys still pull from cloud. Regular users use private `user_stores`.
  */
 export async function syncOnLogin(
   supabase: SupabaseClient,
@@ -275,15 +276,16 @@ export async function syncOnLogin(
       cloudPayload === undefined || isEmptyPayload(cloudPayload);
     const localEmpty = isEmptyPayload(localPayload);
 
-    if (!cloudEmpty) {
-      writeLocal(name, cloudPayload);
-      pulled += 1;
-    } else if (!localEmpty) {
+    // Owner machine: keep and publish local content first.
+    if (!localEmpty) {
       const result = await pushStore(supabase, name);
       if (result.error) {
         return { error: result.error, pulled, pushed };
       }
       pushed += 1;
+    } else if (!cloudEmpty) {
+      writeLocal(name, cloudPayload);
+      pulled += 1;
     }
   }
 

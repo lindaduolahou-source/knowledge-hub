@@ -15,9 +15,12 @@ import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 /**
- * - Everyone pulls official defaults from `site_stores`.
- * - Site owner edits write to `site_stores` (product defaults).
+ * - Logged-out visitors pull official defaults from `site_stores`.
+ * - Site owner edits / login push local stores to `site_stores` (product defaults).
  * - Regular users edit write to `user_stores` (private per account).
+ *
+ * Important: do not pull public defaults before auth is known — that used to
+ * overwrite the owner's local mind maps with older cloud rows.
  */
 export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
   const userRef = useRef<User | null>(null);
@@ -59,21 +62,20 @@ export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    void pullPublicDefaults(supabase);
-
-    void supabase.auth.getSession().then(({ data }) => {
+    void supabase.auth.getSession().then(async ({ data }) => {
       if (data.session?.user) {
-        void onSignedIn(data.session.user);
+        await onSignedIn(data.session.user);
+      } else {
+        await pullPublicDefaults(supabase);
       }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (
-        session?.user &&
-        (event === "SIGNED_IN" || event === "INITIAL_SESSION")
-      ) {
+      // INITIAL_SESSION is handled by getSession() above to avoid a double sync
+      // that could race and wipe local owner content.
+      if (session?.user && event === "SIGNED_IN") {
         void onSignedIn(session.user);
       }
       if (event === "SIGNED_OUT") {
