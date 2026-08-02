@@ -166,9 +166,15 @@ export function keysForEvent(eventName: string): CloudSyncKey[] {
   const map: Record<string, CloudSyncKey> = {
     "knowledge-hub:module-layout-updated": "knowledge-hub:module-layout",
     "knowledge-hub:module-sections-updated": "knowledge-hub:module-sections",
+    "knowledge-hub:module-page-blocks-updated":
+      "knowledge-hub:module-page-blocks",
     "knowledge-hub:project-items-updated": "knowledge-hub:project-items",
     "knowledge-hub:post-items-updated": "knowledge-hub:post-items",
     "knowledge-hub:roadmap-items-updated": "knowledge-hub:roadmap-items",
+    "knowledge-hub:mindmap-items-updated": "knowledge-hub:mindmap-items",
+    "knowledge-hub:mindmap-library-updated": "knowledge-hub:mindmap-library",
+    "knowledge-hub:mindmap-style-library-updated":
+      "knowledge-hub:mindmap-style-library",
     "knowledge-hub:contact-links-updated": "knowledge-hub:contact-links",
     "knowledge-hub:trash-updated": "knowledge-hub:trash",
     "knowledge-hub:share-card-vault-updated": "knowledge-hub:share-card-vault",
