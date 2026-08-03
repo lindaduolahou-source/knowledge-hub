@@ -89,6 +89,24 @@ export function LinkedText({
     if (!segment.value) return null;
 
     if (moduleHref) {
+      const external =
+        /^(https?:|mailto:|tel:)/i.test(moduleHref) ||
+        moduleHref.startsWith("//");
+      if (external) {
+        const isMailOrTel = /^(mailto:|tel:)/i.test(moduleHref);
+        return (
+          <a
+            key={`text-${index}`}
+            href={moduleHref}
+            target={isMailOrTel ? undefined : "_blank"}
+            rel={isMailOrTel ? undefined : "noopener noreferrer"}
+            className="underline decoration-white/25 underline-offset-2 transition-colors hover:decoration-white/60 hover:text-white"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {segment.value}
+          </a>
+        );
+      }
       return (
         <Link
           key={`text-${index}`}

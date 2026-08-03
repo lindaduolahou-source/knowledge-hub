@@ -15,6 +15,7 @@ import {
   contactFieldLabelKey,
   contactFieldValueKey,
   contactLabelKey,
+  contactValueHref,
   contactValueKey,
   createContactLink,
   DEFAULT_CONTACT_LINKS,
@@ -34,6 +35,7 @@ import {
 import {
   ensureCrossLocaleModuleContent,
   MODULE_CONTENT_EVENT,
+  resolveModuleContent,
   saveModuleContent,
 } from "@/lib/module-content";
 import { trashContactExtraField, trashCoreSlot } from "@/lib/field-trash";
@@ -55,6 +57,8 @@ export function ContactEditableBody({
   hideAdd = false,
 }: ContactEditableBodyProps) {
   const [links, setLinks] = useState<ContactLinkDef[]>(DEFAULT_CONTACT_LINKS);
+  /** Live values for clickable mailto / URL on contact cards (no type icons). */
+  const [values, setValues] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const [pendingRemoveCore, setPendingRemoveCore] = useState<{
@@ -80,7 +84,18 @@ export function ContactEditableBody({
     async function refresh() {
       await ensureCrossLocaleModuleContent();
       if (cancelled) return;
-      setLinks(loadContactLinks());
+      const nextLinks = loadContactLinks();
+      const nextValues: Record<string, string> = {};
+      for (const link of nextLinks) {
+        const key = contactValueKey(link.id, link.kind);
+        nextValues[key] = resolveModuleContent(
+          locale,
+          key,
+          valueDefault(link),
+        );
+      }
+      setLinks(nextLinks);
+      setValues(nextValues);
       setReady(true);
     }
 
@@ -209,6 +224,8 @@ export function ContactEditableBody({
             {links.map((link, index) => {
               const valueKey = contactValueKey(link.id, link.kind);
               const labelKey = contactLabelKey(link.id, link.kind);
+              const liveValue = values[valueKey] ?? valueDefault(link);
+              const href = contactValueHref(link.kind, liveValue);
               const canRemove = links.length > 1;
               const core = link.coreSlots ?? [...CONTACT_CORE_SLOTS];
 
@@ -284,6 +301,7 @@ export function ContactEditableBody({
                             rows={2}
                             commitOnEnter
                             muted={false}
+                            href={href}
                           />
                         </RemovableSlot>
                       )}
