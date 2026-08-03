@@ -9,6 +9,7 @@ import {
   isSiteOwner,
   publishLocalDefaults,
 } from "@/lib/cloud-sync";
+import { enforceSectionTombstones } from "@/lib/module-sections";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -125,6 +126,8 @@ export function AuthButton({ locale, dict, immersive }: AuthButtonProps) {
         }
         window.localStorage.setItem(key, JSON.stringify(value));
       }
+      // Backup may contain deleted sections; strip via tombstones / trash seed.
+      enforceSectionTombstones();
       for (const eventName of CLOUD_SYNC_EVENTS) {
         window.dispatchEvent(new CustomEvent(eventName));
       }

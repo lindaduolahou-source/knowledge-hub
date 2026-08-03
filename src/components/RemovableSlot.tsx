@@ -24,8 +24,12 @@ export function RemovableSlot({
         <div className="min-w-0 flex-1">{children}</div>
         <button
           type="button"
-          onClick={onRemove}
-          className="mt-0.5 shrink-0 cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onRemove();
+          }}
+          className="relative z-10 mt-0.5 shrink-0 cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
           aria-label={removeLabel}
           title={removeLabel}
         >

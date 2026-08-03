@@ -16,7 +16,14 @@ import {
 } from "./core-slots";
 import { getPublishedModuleSections } from "./published-site";
 import { moveIndex } from "./reorder";
-import { pushSectionToTrash } from "./trash";
+import {
+  addSectionTombstone,
+  loadSectionTombstones,
+  removeSectionTombstone,
+  seedTombstonesFromEntries,
+  tombstonedSectionIds,
+} from "./section-tombstones";
+import { getTrashItems, pushSectionToTrash } from "./trash";
 import type { Locale } from "@/i18n/config";
 import { locales } from "@/i18n/config";
 
@@ -50,9 +57,12 @@ export type SectionLocaleTexts = {
 
 type SectionsStore = Record<string, ModuleSectionDef[]>;
 
-function emit(moduleId: string) {
+function emit(moduleId?: string) {
   window.dispatchEvent(
-    new CustomEvent(MODULE_SECTIONS_EVENT, { detail: { moduleId } }),
+    new CustomEvent(
+      MODULE_SECTIONS_EVENT,
+      moduleId ? { detail: { moduleId } } : undefined,
+    ),
   );
 }
 
@@ -165,10 +175,50 @@ function listModuleContentKeys(): string[] {
   return [...keys];
 }
 
+/** Soft-deleted section ids still waiting in trash (must not be resurrected). */
+function trashedSectionIds(moduleId: string): Set<string> {
+  return new Set(
+    getTrashItems().flatMap((item) =>
+      item.kind === "section" && item.moduleId === moduleId
+        ? [item.section.id]
+        : [],
+    ),
+  );
+}
+
+/** Ids blocked from live layout: trash + explicit tombstones. */
+function blockedSectionIds(moduleId: string): Set<string> {
+  return new Set([
+    ...trashedSectionIds(moduleId),
+    ...tombstonedSectionIds(moduleId),
+  ]);
+}
+
 /**
- * If module-content still has section/field keys but module-sections lost the
- * structure (common after a bad cloud pull), recreate missing section shells
- * so the texts become visible again.
+ * Seed tombstones from trash so emptying trash later cannot resurrect via
+ * cloud pull / leftover content keys.
+ */
+function seedTombstonesFromTrash() {
+  seedTombstonesFromEntries(
+    getTrashItems().flatMap((item) =>
+      item.kind === "section"
+        ? [
+            {
+              moduleId: item.moduleId,
+              sectionId: item.section.id,
+              deletedAt: item.deletedAt,
+            },
+          ]
+        : [],
+    ),
+  );
+}
+
+/**
+ * Sync field refs onto *existing* section shells only.
+ *
+ * Never create new sections from orphan content keys — that recovery hack
+ * resurrected deleted "新章节" whenever cloud pull restored module-content.
  */
 function reconcileSectionsWithContent(
   moduleId: string,
@@ -179,7 +229,10 @@ function reconcileSectionsWithContent(
   const contentKeys = listModuleContentKeys();
   if (contentKeys.length === 0) return sections;
 
-  const byId = new Map(sections.map((section) => [section.id, cloneSection(section)]));
+  const blocked = blockedSectionIds(moduleId);
+  const byId = new Map(
+    sections.map((section) => [section.id, cloneSection(section)]),
+  );
   let changed = false;
 
   for (const key of contentKeys) {
@@ -209,26 +262,13 @@ function reconcileSectionsWithContent(
       }
     }
 
-    if (!sectionId) continue;
+    if (!sectionId || blocked.has(sectionId)) continue;
 
-    let section = byId.get(sectionId);
-    if (!section) {
-      section = {
-        id: sectionId,
-        variant:
-          sectionId === "skills"
-            ? "chips"
-            : sectionId === "focus"
-              ? "list"
-              : "plain",
-        fields: [],
-        coreSlots: [...SECTION_CORE_SLOTS],
-      };
-      byId.set(sectionId, section);
-      changed = true;
-    }
+    const section = byId.get(sectionId);
+    // Do not create missing sections — layout is authoritative.
+    if (!section || !fieldId) continue;
 
-    if (fieldId && !section.fields.some((field) => field.id === fieldId)) {
+    if (!section.fields.some((field) => field.id === fieldId)) {
       section.fields = [...section.fields, { id: fieldId }];
       byId.set(sectionId, section);
       changed = true;
@@ -237,13 +277,9 @@ function reconcileSectionsWithContent(
 
   if (!changed) return sections;
 
-  // Preserve existing order, then append newly discovered ids.
-  const next = [
-    ...sections.map((section) => byId.get(section.id) ?? section),
-    ...[...byId.values()].filter(
-      (section) => !sections.some((existing) => existing.id === section.id),
-    ),
-  ];
+  const next = sections.map(
+    (section) => byId.get(section.id) ?? section,
+  );
 
   const store = loadStore();
   store[moduleId] = next.map(cloneSection);
@@ -252,10 +288,66 @@ function reconcileSectionsWithContent(
   return next;
 }
 
+function stripBlockedSections(
+  moduleId: string,
+  sections: ModuleSectionDef[],
+): ModuleSectionDef[] {
+  const blocked = blockedSectionIds(moduleId);
+  if (blocked.size === 0) return sections;
+  const without = sections.filter((section) => !blocked.has(section.id));
+  if (without.length === sections.length) return sections;
+
+  const nextStore = loadStore();
+  nextStore[moduleId] = without.map(cloneSection);
+  writeStore(nextStore);
+  for (const section of sections) {
+    if (!blocked.has(section.id)) continue;
+    purgeModuleSectionContentById(moduleId, section.id);
+  }
+  return without;
+}
+
+/**
+ * After cloud pull / import: remove tombstoned (and trashed) sections from the
+ * live layout and purge their content keys so they cannot reappear.
+ */
+export function enforceSectionTombstones(): boolean {
+  if (typeof window === "undefined") return false;
+  seedTombstonesFromTrash();
+
+  const store = loadStore();
+  let changed = false;
+  for (const moduleId of Object.keys(store)) {
+    const list = store[moduleId];
+    if (!Array.isArray(list)) continue;
+    const sections = list
+      .map(normalizeSection)
+      .filter((item): item is ModuleSectionDef => Boolean(item));
+    const next = stripBlockedSections(moduleId, sections);
+    if (next.length !== sections.length) changed = true;
+  }
+
+  // Purge content for every tombstone even if layout already lacked the shell
+  // (cloud may have restored content keys alone).
+  for (const key of Object.keys(loadSectionTombstones())) {
+    const split = key.indexOf(":");
+    if (split <= 0) continue;
+    const moduleId = key.slice(0, split);
+    const sectionId = key.slice(split + 1);
+    if (!moduleId || !sectionId) continue;
+    purgeModuleSectionContentById(moduleId, sectionId);
+  }
+
+  if (changed) emit();
+  return changed;
+}
+
 export function loadModuleSections(
   moduleId: string,
   defaults: ModuleSectionDef[],
 ): ModuleSectionDef[] {
+  seedTombstonesFromTrash();
+
   const store = loadStore();
   let sections: ModuleSectionDef[] | null = null;
 
@@ -275,7 +367,8 @@ export function loadModuleSections(
       : defaults.map(cloneSection);
   }
 
-  return reconcileSectionsWithContent(moduleId, sections);
+  sections = reconcileSectionsWithContent(moduleId, sections);
+  return stripBlockedSections(moduleId, sections);
 }
 
 export function saveModuleSections(
@@ -440,8 +533,13 @@ export function removeModuleSection(
       texts,
     });
   }
+  // Tombstone survives trash empty / cloud pull of older rich layouts.
+  addSectionTombstone(moduleId, sectionId);
   const sections = current.filter((item) => item.id !== sectionId);
   saveModuleSections(moduleId, sections);
+  // Drop content keys immediately so leftover module-content cannot linger.
+  // Trash already holds the text snapshot for restore.
+  purgeModuleSectionContentById(moduleId, sectionId);
   return sections;
 }
 
@@ -450,8 +548,17 @@ export function restoreModuleSection(
   section: ModuleSectionDef,
   texts: Partial<Record<Locale, SectionLocaleTexts>>,
 ): boolean {
-  const current = loadModuleSections(moduleId, []);
-  if (current.some((item) => item.id === section.id)) return true;
+  // Clear tombstone first. Do NOT call loadModuleSections here — it seeds
+  // tombstones from trash and would immediately re-block this section while
+  // the trash row still exists (TrashButton removes trash after restore).
+  removeSectionTombstone(moduleId, section.id);
+
+  const store = loadStore();
+  const stored = Array.isArray(store[moduleId])
+    ? store[moduleId]
+        .map(normalizeSection)
+        .filter((item): item is ModuleSectionDef => Boolean(item))
+    : [];
 
   const normalized = cloneSection({
     id: section.id,
@@ -459,7 +566,10 @@ export function restoreModuleSection(
     fields: section.fields ?? [],
     coreSlots: section.coreSlots ?? [...SECTION_CORE_SLOTS],
   });
-  saveModuleSections(moduleId, [...current, normalized]);
+
+  if (!stored.some((item) => item.id === section.id)) {
+    saveModuleSections(moduleId, [...stored, normalized]);
+  }
 
   const titleKey = sectionTitleKey(moduleId, section.id);
   const bodyKey = sectionBodyKey(moduleId, section.id);
@@ -486,6 +596,32 @@ export function restoreModuleSection(
   return true;
 }
 
+/** Purge all content keys for a section id (any fields), including legacy space keys. */
+export function purgeModuleSectionContentById(
+  moduleId: string,
+  sectionId: string,
+) {
+  if (typeof window === "undefined") return;
+  const prefix = `${moduleId}:section:${sectionId}:`;
+  const keys = listModuleContentKeys().filter((key) => {
+    if (key.startsWith(prefix)) return true;
+    if (
+      moduleId === "space" &&
+      (sectionId === "focus" || sectionId === "skills") &&
+      key === `space:${sectionId}`
+    ) {
+      return true;
+    }
+    return false;
+  });
+  // Always include canonical title/body even if currently absent.
+  keys.push(
+    sectionTitleKey(moduleId, sectionId),
+    sectionBodyKey(moduleId, sectionId),
+  );
+  purgeModuleContentKeys([...new Set(keys)]);
+}
+
 export function purgeModuleSectionContent(
   moduleId: string,
   sectionId: string,
@@ -499,4 +635,6 @@ export function purgeModuleSectionContent(
       coreSlots: [...SECTION_CORE_SLOTS],
     }),
   );
+  // Catch field keys not listed in `fields` (e.g. after cloud restore).
+  purgeModuleSectionContentById(moduleId, sectionId);
 }

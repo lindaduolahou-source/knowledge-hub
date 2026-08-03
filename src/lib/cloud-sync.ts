@@ -1,5 +1,12 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { enforceSectionTombstones } from "@/lib/module-sections";
+import {
+  mergeSectionTombstones,
+  parseTombstonesPayload,
+} from "@/lib/section-tombstones";
 import { getSiteOwnerEmail } from "@/lib/supabase/env";
+
+const SECTION_TOMBSTONES_KEY = "knowledge-hub:section-tombstones";
 
 /** localStorage keys that sync to Supabase. */
 export const CLOUD_SYNC_KEYS = [
@@ -20,6 +27,7 @@ export const CLOUD_SYNC_KEYS = [
   "knowledge-hub:trash",
   "knowledge-hub:share-card-vault",
   "knowledge-hub:share-card-library",
+  SECTION_TOMBSTONES_KEY,
 ] as const;
 
 export type CloudSyncKey = (typeof CLOUD_SYNC_KEYS)[number];
@@ -41,6 +49,7 @@ export const PUBLIC_DEFAULT_KEYS = [
   "knowledge-hub:roadmap-items",
   "knowledge-hub:mindmap-items",
   "knowledge-hub:contact-links",
+  SECTION_TOMBSTONES_KEY,
 ] as const satisfies readonly CloudSyncKey[];
 
 export function isSiteOwner(user: User | null | undefined): boolean {
@@ -66,6 +75,7 @@ export const CLOUD_SYNC_EVENTS = [
   "knowledge-hub:trash-updated",
   "knowledge-hub:share-card-vault-updated",
   "knowledge-hub:share-card-library-updated",
+  "knowledge-hub:section-tombstones-updated",
 ] as const;
 
 export const CLOUD_SYNC_READY_EVENT = "knowledge-hub:cloud-sync-ready";
@@ -106,6 +116,28 @@ function readLocal(name: string): unknown {
 function writeLocal(name: string, payload: unknown) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(name, JSON.stringify(payload ?? {}));
+}
+
+/**
+ * Tombstones are accumulative deletes — never replace a larger local set with
+ * a thinner cloud row via JSON length scoring.
+ */
+function pullTombstones(cloudPayload: unknown): boolean {
+  const before = JSON.stringify(readLocal(SECTION_TOMBSTONES_KEY));
+  mergeSectionTombstones(parseTombstonesPayload(cloudPayload), {
+    silent: true,
+  });
+  const after = JSON.stringify(readLocal(SECTION_TOMBSTONES_KEY));
+  return before !== after;
+}
+
+/**
+ * Cloud "richer wins" treats intentional deletes as thinner local data and used
+ * to resurrect removed sections. After any pull, strip tombstoned ids from
+ * layout + content.
+ */
+function afterStoresPulled() {
+  enforceSectionTombstones();
 }
 
 function emitStoreRefresh() {
@@ -184,7 +216,15 @@ export async function pullPublicDefaults(
   );
 
   let pulled = 0;
+
+  // Merge tombstones first so enforce can strip ids from any subsequent pull.
+  const cloudTombs = cloud.get(SECTION_TOMBSTONES_KEY);
+  if (cloudTombs !== undefined && !isEmptyPayload(cloudTombs)) {
+    if (pullTombstones(cloudTombs)) pulled += 1;
+  }
+
   for (const name of PUBLIC_DEFAULT_KEYS) {
+    if (name === SECTION_TOMBSTONES_KEY) continue;
     const cloudPayload = cloud.get(name);
     if (cloudPayload === undefined || isEmptyPayload(cloudPayload)) continue;
     const localPayload = readLocal(name);
@@ -200,7 +240,10 @@ export async function pullPublicDefaults(
     pulled += 1;
   }
 
-  if (pulled > 0) emitStoreRefresh();
+  if (pulled > 0) {
+    afterStoresPulled();
+    emitStoreRefresh();
+  }
   return { error: null, pulled };
 }
 
@@ -246,7 +289,14 @@ export async function syncUserOnLogin(
   }
 
   let pulled = 0;
+
+  const cloudTombs = cloud.get(SECTION_TOMBSTONES_KEY);
+  if (cloudTombs !== undefined && !isEmptyPayload(cloudTombs)) {
+    if (pullTombstones(cloudTombs)) pulled += 1;
+  }
+
   for (const name of CLOUD_SYNC_KEYS) {
+    if (name === SECTION_TOMBSTONES_KEY) continue;
     if (!cloud.has(name)) continue;
     const cloudPayload = cloud.get(name);
     // Never replace local data with an empty/placeholder cloud row.
@@ -261,6 +311,7 @@ export async function syncUserOnLogin(
     writeLocal(name, cloudPayload);
     pulled += 1;
   }
+  afterStoresPulled();
   emitStoreRefresh();
   return { error: null, pulled, seeded: 0 };
 }
@@ -298,7 +349,24 @@ export async function syncOnLogin(
   let pulled = 0;
   let pushed = 0;
 
+  // Tombstones: union merge, then push the union so deletes propagate.
+  {
+    const cloudPayload = cloud.get(SECTION_TOMBSTONES_KEY);
+    if (cloudPayload !== undefined && !isEmptyPayload(cloudPayload)) {
+      if (pullTombstones(cloudPayload)) pulled += 1;
+    }
+    const merged = readLocal(SECTION_TOMBSTONES_KEY);
+    if (!isEmptyPayload(merged)) {
+      const result = await pushStore(supabase, SECTION_TOMBSTONES_KEY);
+      if (result.error) {
+        return { error: result.error, pulled, pushed };
+      }
+      pushed += 1;
+    }
+  }
+
   for (const name of CLOUD_SYNC_KEYS) {
+    if (name === SECTION_TOMBSTONES_KEY) continue;
     const cloudPayload = cloud.get(name);
     const localPayload = readLocal(name);
     const cloudEmpty =
@@ -307,7 +375,19 @@ export async function syncOnLogin(
     const localScore = payloadScore(localPayload);
     const cloudScore = payloadScore(cloudPayload);
 
-    if (!localEmpty && (cloudEmpty || localScore >= cloudScore)) {
+    // Deleting sections makes local "thinner". If we have tombstones, prefer
+    // pushing the intentional thinner layout over pulling resurrected sections.
+    const preferLocalDelete =
+      (name === "knowledge-hub:module-sections" ||
+        name === "knowledge-hub:module-content:zh" ||
+        name === "knowledge-hub:module-content:en") &&
+      !isEmptyPayload(readLocal(SECTION_TOMBSTONES_KEY)) &&
+      !localEmpty;
+
+    if (
+      !localEmpty &&
+      (cloudEmpty || localScore >= cloudScore || preferLocalDelete)
+    ) {
       const result = await pushStore(supabase, name);
       if (result.error) {
         return { error: result.error, pulled, pushed };
@@ -319,6 +399,7 @@ export async function syncOnLogin(
     }
   }
 
+  afterStoresPulled();
   emitStoreRefresh();
   return { error: null, pulled, pushed };
 }
@@ -344,13 +425,25 @@ export async function publishLocalDefaults(
   );
 
   let pushed = 0;
+  const hasTombstones = !isEmptyPayload(readLocal(SECTION_TOMBSTONES_KEY));
+
   for (const name of CLOUD_SYNC_KEYS) {
     const local = readLocal(name);
     if (isEmptyPayload(local)) continue;
     const cloudPayload = cloud.get(name);
     const cloudEmpty =
       cloudPayload === undefined || isEmptyPayload(cloudPayload);
-    if (!cloudEmpty && payloadScore(local) < payloadScore(cloudPayload)) {
+    const preferLocalDelete =
+      hasTombstones &&
+      (name === SECTION_TOMBSTONES_KEY ||
+        name === "knowledge-hub:module-sections" ||
+        name === "knowledge-hub:module-content:zh" ||
+        name === "knowledge-hub:module-content:en");
+    if (
+      !cloudEmpty &&
+      payloadScore(local) < payloadScore(cloudPayload) &&
+      !preferLocalDelete
+    ) {
       continue;
     }
     const result = await pushStore(supabase, name);
@@ -387,6 +480,7 @@ export function keysForEvent(eventName: string): CloudSyncKey[] {
     "knowledge-hub:share-card-vault-updated": "knowledge-hub:share-card-vault",
     "knowledge-hub:share-card-library-updated":
       "knowledge-hub:share-card-library",
+    "knowledge-hub:section-tombstones-updated": SECTION_TOMBSTONES_KEY,
   };
   const one = map[eventName];
   return one ? [one] : [];

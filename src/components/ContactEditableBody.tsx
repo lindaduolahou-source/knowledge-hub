@@ -136,11 +136,6 @@ export function ContactEditableBody({
 
   function confirmRemove() {
     if (!pendingRemoveId) return;
-    // Keep at least one contact card.
-    if (links.length <= 1) {
-      setPendingRemoveId(null);
-      return;
-    }
     setLinks(removeContactLink(links, pendingRemoveId));
     setPendingRemoveId(null);
   }
@@ -226,7 +221,6 @@ export function ContactEditableBody({
               const labelKey = contactLabelKey(link.id, link.kind);
               const liveValue = values[valueKey] ?? valueDefault(link);
               const href = contactValueHref(link.kind, liveValue);
-              const canRemove = links.length > 1;
               const core = link.coreSlots ?? [...CONTACT_CORE_SLOTS];
 
               return (
@@ -238,17 +232,19 @@ export function ContactEditableBody({
                   <div className="min-w-0">
                     <div className="mb-2 flex items-center justify-end gap-0.5">
                       <DragHandle index={index} label={dict.common.reorder} />
-                      {canRemove && (
-                        <button
-                          type="button"
-                          onClick={() => setPendingRemoveId(link.id)}
-                          className="cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
-                          aria-label={dict.contact.removeLink}
-                          title={dict.contact.removeLink}
-                        >
-                          ×
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setPendingRemoveId(link.id);
+                        }}
+                        className="relative z-10 cursor-pointer rounded px-1.5 text-sm text-white/35 transition-colors hover:bg-white/10 hover:text-white/75"
+                        aria-label={dict.contact.removeLink}
+                        title={dict.contact.removeLink}
+                      >
+                        ×
+                      </button>
                     </div>
                     <div className="space-y-2">
                       {core.includes("label") && (
@@ -333,7 +329,7 @@ export function ContactEditableBody({
           </div>
         </SortableList>
 
-        {!hideAdd && (
+        {(!hideAdd || links.length === 0) && (
           <button
             type="button"
             onClick={() => void handleAdd()}
