@@ -144,24 +144,138 @@ function sectionContentKeys(moduleId: string, section: ModuleSectionDef) {
   return keys;
 }
 
+function listModuleContentKeys(): string[] {
+  if (typeof window === "undefined") return [];
+  const keys = new Set<string>();
+  for (const locale of locales) {
+    try {
+      const raw = window.localStorage.getItem(
+        `knowledge-hub:module-content:${locale}`,
+      );
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== "object") continue;
+      for (const key of Object.keys(parsed as Record<string, unknown>)) {
+        keys.add(key);
+      }
+    } catch {
+      // ignore corrupt locale store
+    }
+  }
+  return [...keys];
+}
+
+/**
+ * If module-content still has section/field keys but module-sections lost the
+ * structure (common after a bad cloud pull), recreate missing section shells
+ * so the texts become visible again.
+ */
+function reconcileSectionsWithContent(
+  moduleId: string,
+  sections: ModuleSectionDef[],
+): ModuleSectionDef[] {
+  if (typeof window === "undefined") return sections;
+
+  const contentKeys = listModuleContentKeys();
+  if (contentKeys.length === 0) return sections;
+
+  const byId = new Map(sections.map((section) => [section.id, cloneSection(section)]));
+  let changed = false;
+
+  for (const key of contentKeys) {
+    let sectionId: string | null = null;
+    let fieldId: string | null = null;
+
+    if (moduleId === "space" && (key === "space:focus" || key === "space:skills")) {
+      sectionId = key === "space:focus" ? "focus" : "skills";
+    } else {
+      const sectionMatch = key.match(
+        new RegExp(
+          `^${moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:section:([^:]+):(title|body)$`,
+        ),
+      );
+      if (sectionMatch) {
+        sectionId = sectionMatch[1];
+      } else {
+        const fieldMatch = key.match(
+          new RegExp(
+            `^${moduleId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:section:([^:]+):field:([^:]+):(label|value)$`,
+          ),
+        );
+        if (fieldMatch) {
+          sectionId = fieldMatch[1];
+          fieldId = fieldMatch[2];
+        }
+      }
+    }
+
+    if (!sectionId) continue;
+
+    let section = byId.get(sectionId);
+    if (!section) {
+      section = {
+        id: sectionId,
+        variant:
+          sectionId === "skills"
+            ? "chips"
+            : sectionId === "focus"
+              ? "list"
+              : "plain",
+        fields: [],
+        coreSlots: [...SECTION_CORE_SLOTS],
+      };
+      byId.set(sectionId, section);
+      changed = true;
+    }
+
+    if (fieldId && !section.fields.some((field) => field.id === fieldId)) {
+      section.fields = [...section.fields, { id: fieldId }];
+      byId.set(sectionId, section);
+      changed = true;
+    }
+  }
+
+  if (!changed) return sections;
+
+  // Preserve existing order, then append newly discovered ids.
+  const next = [
+    ...sections.map((section) => byId.get(section.id) ?? section),
+    ...[...byId.values()].filter(
+      (section) => !sections.some((existing) => existing.id === section.id),
+    ),
+  ];
+
+  const store = loadStore();
+  store[moduleId] = next.map(cloneSection);
+  // Persist quietly — emitting during load can recurse through listeners.
+  writeStore(store);
+  return next;
+}
+
 export function loadModuleSections(
   moduleId: string,
   defaults: ModuleSectionDef[],
 ): ModuleSectionDef[] {
   const store = loadStore();
+  let sections: ModuleSectionDef[] | null = null;
+
   if (Object.prototype.hasOwnProperty.call(store, moduleId)) {
     const stored = store[moduleId];
     if (Array.isArray(stored)) {
-      return stored
+      sections = stored
         .map(normalizeSection)
         .filter((item): item is ModuleSectionDef => Boolean(item));
     }
   }
 
-  const published = getPublishedModuleSections(moduleId);
-  if (published) return published.map(cloneSection);
+  if (!sections) {
+    const published = getPublishedModuleSections(moduleId);
+    sections = published
+      ? published.map(cloneSection)
+      : defaults.map(cloneSection);
+  }
 
-  return defaults.map(cloneSection);
+  return reconcileSectionsWithContent(moduleId, sections);
 }
 
 export function saveModuleSections(

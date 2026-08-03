@@ -88,6 +88,16 @@ function isEmptyPayload(payload: unknown): boolean {
   return false;
 }
 
+/** Rough richness score so public pull does not wipe larger local recoveries. */
+function payloadScore(payload: unknown): number {
+  if (payload == null) return 0;
+  try {
+    return JSON.stringify(payload).length;
+  } catch {
+    return 0;
+  }
+}
+
 function readLocal(name: string): unknown {
   if (typeof window === "undefined") return {};
   return parsePayload(window.localStorage.getItem(name));
@@ -177,6 +187,15 @@ export async function pullPublicDefaults(
   for (const name of PUBLIC_DEFAULT_KEYS) {
     const cloudPayload = cloud.get(name);
     if (cloudPayload === undefined || isEmptyPayload(cloudPayload)) continue;
+    const localPayload = readLocal(name);
+    // Keep richer local data (e.g. recovered custom modules) instead of
+    // overwriting with thinner cloud defaults on every page load.
+    if (
+      !isEmptyPayload(localPayload) &&
+      payloadScore(localPayload) >= payloadScore(cloudPayload)
+    ) {
+      continue;
+    }
     writeLocal(name, cloudPayload);
     pulled += 1;
   }
@@ -229,7 +248,17 @@ export async function syncUserOnLogin(
   let pulled = 0;
   for (const name of CLOUD_SYNC_KEYS) {
     if (!cloud.has(name)) continue;
-    writeLocal(name, cloud.get(name));
+    const cloudPayload = cloud.get(name);
+    // Never replace local data with an empty/placeholder cloud row.
+    if (cloudPayload === undefined || isEmptyPayload(cloudPayload)) continue;
+    const localPayload = readLocal(name);
+    if (
+      !isEmptyPayload(localPayload) &&
+      payloadScore(localPayload) > payloadScore(cloudPayload)
+    ) {
+      continue;
+    }
+    writeLocal(name, cloudPayload);
     pulled += 1;
   }
   emitStoreRefresh();

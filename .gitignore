@@ -46,3 +46,7 @@ next-env.d.ts
 
 # published-content apply backups
 content/published-site.backup.*.json
+
+# local recovery dumps
+.recovery/
+
