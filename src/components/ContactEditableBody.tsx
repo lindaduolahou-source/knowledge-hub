@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link2, Mail } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -16,7 +15,6 @@ import {
   contactFieldLabelKey,
   contactFieldValueKey,
   contactLabelKey,
-  contactValueHref,
   contactValueKey,
   createContactLink,
   DEFAULT_CONTACT_LINKS,
@@ -36,7 +34,6 @@ import {
 import {
   ensureCrossLocaleModuleContent,
   MODULE_CONTENT_EVENT,
-  resolveModuleContent,
   saveModuleContent,
 } from "@/lib/module-content";
 import { trashContactExtraField, trashCoreSlot } from "@/lib/field-trash";
@@ -58,7 +55,6 @@ export function ContactEditableBody({
   hideAdd = false,
 }: ContactEditableBodyProps) {
   const [links, setLinks] = useState<ContactLinkDef[]>(DEFAULT_CONTACT_LINKS);
-  const [values, setValues] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const [pendingRemoveCore, setPendingRemoveCore] = useState<{
@@ -84,18 +80,7 @@ export function ContactEditableBody({
     async function refresh() {
       await ensureCrossLocaleModuleContent();
       if (cancelled) return;
-      const nextLinks = loadContactLinks();
-      const nextValues: Record<string, string> = {};
-      for (const link of nextLinks) {
-        const key = contactValueKey(link.id, link.kind);
-        nextValues[key] = resolveModuleContent(
-          locale,
-          key,
-          valueDefault(link),
-        );
-      }
-      setLinks(nextLinks);
-      setValues(nextValues);
+      setLinks(loadContactLinks());
       setReady(true);
     }
 
@@ -224,9 +209,6 @@ export function ContactEditableBody({
             {links.map((link, index) => {
               const valueKey = contactValueKey(link.id, link.kind);
               const labelKey = contactLabelKey(link.id, link.kind);
-              const liveValue = values[valueKey] ?? valueDefault(link);
-              const href = contactValueHref(link.kind, liveValue);
-              const Icon = link.kind === "email" ? Mail : Link2;
               const canRemove = links.length > 1;
               const core = link.coreSlots ?? [...CONTACT_CORE_SLOTS];
 
@@ -234,20 +216,9 @@ export function ContactEditableBody({
                 <SortableItem
                   key={link.id}
                   index={index}
-                  className="group/item flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/20"
+                  className="group/item rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/20"
                 >
-                  <a
-                    href={href}
-                    target={link.kind === "email" ? undefined : "_blank"}
-                    rel={
-                      link.kind === "email" ? undefined : "noopener noreferrer"
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/5 transition-colors hover:bg-white/10"
-                    aria-label={labelDefault(link)}
-                  >
-                    <Icon size={18} className="text-accent" />
-                  </a>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0">
                     <div className="mb-2 flex items-center justify-end gap-0.5">
                       <DragHandle index={index} label={dict.common.reorder} />
                       {canRemove && (
