@@ -361,7 +361,14 @@ export const zh = {
     working: "请稍候…",
     signInHint: "登录后，编辑内容会同步到云端数据库",
     syncHint: "已开启私人云同步：登录后内容只属于你自己",
-    syncHintOwner: "站长模式：你的编辑会更新所有人看到的默认内容",
+    syncHintOwner:
+      "站长模式：编辑会同步；跨浏览器请先点「发布到云端」",
+    publishDefaults: "发布到云端（所有人可见）",
+    publishOk: "已发布到云端",
+    publishFail: "发布失败",
+    importLocalBackup: "从本站备份恢复到此浏览器",
+    importOk: "已恢复到此浏览器，请刷新页面",
+    importFail: "未找到备份或恢复失败",
     checkEmail: "请查收邮箱完成验证（若已开启邮箱确认）",
     needAccount: "还没有账号？注册",
     hasAccount: "已有账号？登录",
@@ -746,6 +753,12 @@ export type Dictionary = {
     signInHint: string;
     syncHint: string;
     syncHintOwner: string;
+    publishDefaults: string;
+    publishOk: string;
+    publishFail: string;
+    importLocalBackup: string;
+    importOk: string;
+    importFail: string;
     checkEmail: string;
     needAccount: string;
     hasAccount: string;

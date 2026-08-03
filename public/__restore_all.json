@@ -1,0 +1,926 @@
+{
+  "knowledge-hub:module-content:zh": {
+    "knowledge:title": "知识星球",
+    "space:title": "我的空间",
+    "space:section:sec-ms7nn0on:title": "新小节",
+    "space:section:sec-ms7nn0on:body": "写一段内容…",
+    "space:section:sec-ms7nn3vx:title": "新小节",
+    "space:section:sec-ms7nn3vx:body": "写一段内容…",
+    "space:section:sec-ms7nn64u:title": "新小节",
+    "space:section:sec-ms7nn64u:body": "写一段内容…",
+    "space:section:sec-ms7nummv:title": "新小节",
+    "space:section:sec-ms7nummv:body": "写一段内容…\npython\nDesign",
+    "space:section:sec-ms7nvj0u:title": "新小节",
+    "space:section:sec-ms7nvj0u:body": "写一段内容…",
+    "space:section:sec-ms7o0i6b:title": "新小节",
+    "space:section:sec-ms7o0i6b:body": "写一段内容…",
+    "lab:section:sec-ms8zjtei:title": "新小节",
+    "lab:section:sec-ms8zjtei:body": "写一段内容…",
+    "thoughts:section:sec-ms8zl2ac:title": "新小节",
+    "thoughts:section:sec-ms8zl2ac:body": "写一段内容…",
+    "contact:section:sec-ms8zlwhv:title": "新小节",
+    "contact:section:sec-ms8zlwhv:body": "微信",
+    "lab:section:sec-ms92wsq9:title": "新小节",
+    "lab:section:sec-ms92wsq9:body": "写一段内容…",
+    "roadmap:title": "学习路线",
+    "thoughts:intro": "关于学习、创作与成长的随想",
+    "thoughts:section:sec-msamrlgw:title": "新小节",
+    "thoughts:section:sec-msamrlgw:body": "写一段内容…",
+    "space:section:sec-msaosu8v:title": "新小节",
+    "space:section:sec-msaosu8v:body": "写一段内容…",
+    "custom-msap0ytx:title": "思维理清室",
+    "custom-msap0ytx:intro": "写一段关于这个模块的说明…",
+    "custom-msap0ytx:subtitle": "梳理混乱的思维",
+    "custom-msap0ytx:section:sec-msapa59s:title": "新小节",
+    "custom-msap0ytx:section:sec-msapa59s:body": "写一段内容…",
+    "custom-msap0ytx:section:sec-msapak4m:title": "新小节",
+    "custom-msap0ytx:section:sec-msapak4m:body": "写一段内容…",
+    "thoughts:section:sec-msapqcfh:title": "新小节",
+    "thoughts:section:sec-msapqcfh:body": "写一段内容…",
+    "space:section:sec-msaosu8v:field:field-msap0327:label": "新栏目",
+    "space:section:sec-msaosu8v:field:field-msap0327:value": "填写内容…",
+    "space:section:sec-msaosu8v:field:field-msap04rp:label": "新栏目",
+    "space:section:sec-msaosu8v:field:field-msap04rp:value": "填写内容…",
+    "space:section:sec-msaosu8v:field:field-msaot7vr:label": "新栏目",
+    "space:section:sec-msaosu8v:field:field-msaot7vr:value": "填写内容…",
+    "space:section:sec-msaosu8v:field:field-msaotltf:label": "新栏目",
+    "space:section:sec-msaosu8v:field:field-msaotltf:value": "填写内容…"
+  },
+  "knowledge-hub:module-content:en": {
+    "knowledge:title": "Knowledge Planet",
+    "space:title": "My Space",
+    "space:section:sec-ms7nn0on:title": "新小节",
+    "space:section:sec-ms7nn3vx:title": "New Section",
+    "space:section:sec-ms7nn0on:body": "写一段内容…",
+    "space:section:sec-ms7nn3vx:body": "写一段内容…",
+    "space:section:sec-ms7nummv:title": "New Section",
+    "space:section:sec-ms7nn64u:title": "New Section",
+    "space:section:sec-ms7nn64u:body": "Write a paragraph...",
+    "space:section:sec-ms7nummv:body": "Write a paragraph...\nPYTHON\nDesign",
+    "space:section:sec-ms7nvj0u:title": "New Section",
+    "space:section:sec-ms7nvj0u:body": "Write a paragraph...",
+    "space:section:sec-ms7o0i6b:title": "新小节",
+    "space:section:sec-ms7o0i6b:body": "写一段内容…",
+    "lab:section:sec-ms8zjtei:title": "新小节",
+    "lab:section:sec-ms8zjtei:body": "写一段内容…",
+    "thoughts:section:sec-ms8zl2ac:title": "New Section",
+    "thoughts:section:sec-ms8zl2ac:body": "Write a paragraph...",
+    "contact:section:sec-ms8zlwhv:title": "New Section",
+    "contact:section:sec-ms8zlwhv:body": "WeChat",
+    "lab:section:sec-ms92wsq9:title": "新小节",
+    "lab:section:sec-ms92wsq9:body": "写一段内容…",
+    "roadmap:title": "学习路线",
+    "thoughts:intro": "Reflections on learning, creating, and growth",
+    "thoughts:section:sec-msamrlgw:title": "新小节",
+    "thoughts:section:sec-msamrlgw:body": "写一段内容…",
+    "space:section:sec-msaosu8v:title": "新小节",
+    "space:section:sec-msaosu8v:body": "写一段内容…",
+    "custom-msap0ytx:title": "Thinking and clearing the room",
+    "custom-msap0ytx:intro": "Write a note about this module…",
+    "custom-msap0ytx:subtitle": "梳理混乱的思维",
+    "custom-msap0ytx:section:sec-msapa59s:title": "新小节",
+    "custom-msap0ytx:section:sec-msapa59s:body": "写一段内容…",
+    "custom-msap0ytx:section:sec-msapak4m:title": "New Section",
+    "custom-msap0ytx:section:sec-msapak4m:body": "Write a paragraph...",
+    "thoughts:section:sec-msapqcfh:title": "New Section",
+    "thoughts:section:sec-msapqcfh:body": "Write a paragraph...",
+    "space:section:sec-msaosu8v:field:field-msap0327:label": "New Tab",
+    "space:section:sec-msaosu8v:field:field-msap0327:value": "I am body!",
+    "space:section:sec-msaosu8v:field:field-msap04rp:label": "New Tab",
+    "space:section:sec-msaosu8v:field:field-msap04rp:value": "I am body!",
+    "space:section:sec-msaosu8v:field:field-msaot7vr:label": "新栏目",
+    "space:section:sec-msaosu8v:field:field-msaot7vr:value": "填写内容…",
+    "space:section:sec-msaosu8v:field:field-msaotltf:label": "New Tab",
+    "space:section:sec-msaosu8v:field:field-msaotltf:value": "I am body!"
+  },
+  "knowledge-hub:toc-notes:zh": {
+    "space": "关于我的故事",
+    "roadmap": "我是如何学习AI的",
+    "knowledge": "我的笔记、我的读后感、我的知识库",
+    "lab": "我的作品集",
+    "thoughts": "我的想法",
+    "contact": "我的联系方式",
+    "custom-msap0ytx": "梳理混乱的思维"
+  },
+  "knowledge-hub:toc-notes:en": {
+    "space": "About my story",
+    "roadmap": "How I learn AI",
+    "knowledge": "My notes, reading reflections, and knowledge base",
+    "lab": "My portfolio",
+    "thoughts": "My thoughts",
+    "contact": "My contact info",
+    "custom-msap0ytx": "Clearing tangled thoughts"
+  },
+  "knowledge-hub:module-layout": {
+    "custom": {
+      "custom-msap0ytx": {
+        "icon": "◇"
+      }
+    },
+    "activeIds": [
+      "space",
+      "roadmap",
+      "knowledge",
+      "lab",
+      "thoughts",
+      "contact",
+      "custom-msap0ytx"
+    ]
+  },
+  "knowledge-hub:module-sections": {
+    "space": [
+      {
+        "id": "sec-ms7nn0on",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-ms7nn3vx",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-ms7nn64u",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-ms7nummv",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-ms7nvj0u",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-ms7o0i6b",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "skills",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-msaosu8v",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      }
+    ],
+    "lab": [
+      {
+        "id": "sec-ms8zjtei",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-ms92wsq9",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      }
+    ],
+    "thoughts": [
+      {
+        "id": "sec-ms8zl2ac",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-msamrlgw",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-msapqcfh",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      }
+    ],
+    "contact": [
+      {
+        "id": "sec-ms8zlwhv",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      }
+    ],
+    "custom-msap0ytx": [
+      {
+        "id": "sec-msapa59s",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      },
+      {
+        "id": "sec-msapak4m",
+        "variant": "plain",
+        "fields": [],
+        "coreSlots": [
+          "title",
+          "body"
+        ]
+      }
+    ]
+  },
+  "knowledge-hub:module-page-blocks": {
+    "lab": [
+      "intro",
+      "projects",
+      "mindmap"
+    ],
+    "space": [
+      "intro",
+      "sections",
+      "mindmap",
+      "contact"
+    ],
+    "roadmap": [
+      "intro",
+      "path",
+      "projects",
+      "mindmap"
+    ],
+    "knowledge": [
+      "intro",
+      "sections"
+    ],
+    "thoughts": [
+      "intro",
+      "sections",
+      "posts",
+      "mindmap",
+      "projects",
+      "path"
+    ],
+    "contact": [
+      "intro",
+      "contact"
+    ],
+    "custom-msap0ytx": [
+      "intro",
+      "sections",
+      "mindmap",
+      "projects",
+      "posts",
+      "path"
+    ]
+  },
+  "knowledge-hub:project-items": {
+    "lab": {
+      "en": [
+        {
+          "date": "2026-07-01",
+          "link": "https://github.com",
+          "slug": "knowledge-hub",
+          "title": "Knowledge Hub",
+          "fields": [],
+          "featured": true,
+          "coreSlots": [
+            "title",
+            "description",
+            "link"
+          ],
+          "description": "个人知识主页 — 基于 Markdown 的内容管理系统，支持博客、项目展示、学习路线与思考笔记。"
+        },
+        {
+          "date": "2026-06-15",
+          "link": "https://github.com",
+          "slug": "rag-assistant",
+          "title": "RAG 问答助手",
+          "fields": [],
+          "featured": true,
+          "coreSlots": [
+            "title",
+            "description",
+            "link"
+          ],
+          "description": "基于检索增强生成的文档问答系统，支持 PDF/Markdown 上传、向量检索与流式回答。"
+        }
+      ],
+      "zh": [
+        {
+          "date": "2026-07-01",
+          "link": "https://github.com",
+          "slug": "knowledge-hub",
+          "title": "Knowledge Hub",
+          "fields": [],
+          "featured": true,
+          "coreSlots": [
+            "title",
+            "description",
+            "link"
+          ],
+          "description": "个人知识主页 — 基于 Markdown 的内容管理系统，支持博客、项目展示、学习路线与思考笔记。"
+        },
+        {
+          "date": "2026-06-15",
+          "link": "https://github.com",
+          "slug": "rag-assistant",
+          "title": "RAG 问答助手",
+          "fields": [],
+          "featured": true,
+          "coreSlots": [
+            "title",
+            "description",
+            "link"
+          ],
+          "description": "基于检索增强生成的文档问答系统，支持 PDF/Markdown 上传、向量检索与流式回答。"
+        }
+      ]
+    },
+    "roadmap": {
+      "en": [
+        {
+          "date": "2026-07-31",
+          "slug": "project-ms92jlek",
+          "title": "New item",
+          "fields": [],
+          "featured": false,
+          "description": "Write a project description…"
+        }
+      ],
+      "zh": [
+        {
+          "date": "2026-07-31",
+          "slug": "project-ms92jlek",
+          "title": "新项目",
+          "fields": [],
+          "featured": false,
+          "description": "写一段项目说明…"
+        }
+      ]
+    }
+  },
+  "knowledge-hub:roadmap-items": {
+    "roadmap": {
+      "en": [
+        {
+          "id": "foundations",
+          "title": "数学与编程基础",
+          "fields": [],
+          "status": "completed",
+          "topics": [
+            "Linear Algebra",
+            "Python",
+            "PyTorch"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "线性代数、概率统计、Python 与 PyTorch 基础。为后续深度学习打下坚实基础。"
+        },
+        {
+          "id": "deep-learning",
+          "title": "深度学习核心",
+          "fields": [],
+          "status": "completed",
+          "topics": [
+            "CNN",
+            "RNN",
+            "Optimization"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "神经网络原理、CNN、RNN、优化算法与正则化技术。完成 CS231n / CS224n 核心章节。"
+        },
+        {
+          "id": "nlp-transformer",
+          "title": "NLP 与 Transformer",
+          "fields": [],
+          "status": "inProgress",
+          "topics": [
+            "Transformer",
+            "BERT",
+            "GPT"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "从 Word2Vec 到 BERT、GPT 系列。深入理解 Self-Attention 机制与预训练范式。"
+        },
+        {
+          "id": "llm-engineering",
+          "title": "LLM 工程实践",
+          "fields": [],
+          "status": "inProgress",
+          "topics": [
+            "RAG",
+            "Fine-tuning",
+            "Agents"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "Prompt Engineering、RAG、Agent 框架、微调与部署。将模型能力落地到实际应用。"
+        },
+        {
+          "id": "multimodal",
+          "title": "多模态与前沿探索",
+          "fields": [],
+          "status": "planned",
+          "topics": [
+            "VLM",
+            "Diffusion",
+            "World Models"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "Vision-Language Models、Diffusion Models、World Models 等前沿方向。"
+        },
+        {
+          "id": "research",
+          "title": "科研方法论",
+          "fields": [],
+          "status": "planned",
+          "topics": [
+            "Paper Reading",
+            "Experiment Design",
+            "Writing"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "论文阅读、实验设计、写作与复现。培养独立研究能力。"
+        }
+      ],
+      "zh": [
+        {
+          "id": "foundations",
+          "title": "数学与编程基础",
+          "fields": [],
+          "status": "completed",
+          "topics": [
+            "Linear Algebra",
+            "Python",
+            "PyTorch"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "线性代数、概率统计、Python 与 PyTorch 基础。为后续深度学习打下坚实基础。"
+        },
+        {
+          "id": "deep-learning",
+          "title": "深度学习核心",
+          "fields": [],
+          "status": "completed",
+          "topics": [
+            "CNN",
+            "RNN",
+            "Optimization"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "神经网络原理、CNN、RNN、优化算法与正则化技术。完成 CS231n / CS224n 核心章节。"
+        },
+        {
+          "id": "nlp-transformer",
+          "title": "NLP 与 Transformer",
+          "fields": [],
+          "status": "inProgress",
+          "topics": [
+            "Transformer",
+            "BERT",
+            "GPT"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "从 Word2Vec 到 BERT、GPT 系列。深入理解 Self-Attention 机制与预训练范式。"
+        },
+        {
+          "id": "llm-engineering",
+          "title": "LLM 工程实践",
+          "fields": [],
+          "status": "inProgress",
+          "topics": [
+            "RAG",
+            "Fine-tuning",
+            "Agents"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "Prompt Engineering、RAG、Agent 框架、微调与部署。将模型能力落地到实际应用。"
+        },
+        {
+          "id": "multimodal",
+          "title": "多模态与前沿探索",
+          "fields": [],
+          "status": "planned",
+          "topics": [
+            "VLM",
+            "Diffusion",
+            "World Models"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "Vision-Language Models、Diffusion Models、World Models 等前沿方向。"
+        },
+        {
+          "id": "research",
+          "title": "科研方法论",
+          "fields": [],
+          "status": "planned",
+          "topics": [
+            "Paper Reading",
+            "Experiment Design",
+            "Writing"
+          ],
+          "coreSlots": [
+            "status",
+            "title",
+            "description",
+            "topics"
+          ],
+          "description": "论文阅读、实验设计、写作与复现。培养独立研究能力。"
+        }
+      ]
+    }
+  },
+  "knowledge-hub:mindmap-items": {
+    "custom-msap0ytx": {
+      "zh": [
+        {
+          "id": "map-msap959o-h2k1",
+          "title": "新思维导图",
+          "nodes": [
+            {
+              "id": "node-msap959o-9ofw",
+              "text": "中心主题",
+              "parentId": null
+            },
+            {
+              "id": "node-msap959o-1bn0",
+              "text": "分支 1",
+              "parentId": "node-msap959o-9ofw"
+            },
+            {
+              "id": "node-msap959o-9dj3",
+              "text": "分支 2",
+              "parentId": "node-msap959o-9ofw"
+            }
+          ],
+          "edgeStyleId": "curve-soft"
+        }
+      ],
+      "en": [
+        {
+          "id": "map-msap959o-h2k1",
+          "title": "New Mind Map",
+          "nodes": [
+            {
+              "id": "node-msap959o-9ofw",
+              "text": "Central Topics",
+              "parentId": null
+            },
+            {
+              "id": "node-msap959o-1bn0",
+              "text": "Branch 1",
+              "parentId": "node-msap959o-9ofw"
+            },
+            {
+              "id": "node-msap959o-9dj3",
+              "text": "Branch 2",
+              "parentId": "node-msap959o-9ofw"
+            }
+          ],
+          "edgeStyleId": "curve-soft"
+        }
+      ]
+    },
+    "thoughts": {
+      "zh": [
+        {
+          "id": "map-msamon3s-hk4r",
+          "title": "学习计划",
+          "nodes": [
+            {
+              "id": "node-msamon3s-1-xy8t",
+              "text": "学习主题",
+              "parentId": null
+            },
+            {
+              "id": "node-msamon3s-2-od3u",
+              "text": "目标",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-3-8ene",
+              "text": "本周目标",
+              "parentId": "node-msamon3s-2-od3u"
+            },
+            {
+              "id": "node-msamon3s-4-ghg6",
+              "text": "本月目标",
+              "parentId": "node-msamon3s-2-od3u"
+            },
+            {
+              "id": "node-msamon3s-5-9mso",
+              "text": "资源",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-6-5b46",
+              "text": "课程 / 书",
+              "parentId": "node-msamon3s-5-9mso"
+            },
+            {
+              "id": "node-msamon3s-7-ds21",
+              "text": "笔记入口",
+              "parentId": "node-msamon3s-5-9mso"
+            },
+            {
+              "id": "node-msamon3s-8-wosm",
+              "text": "练习",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-9-93w9",
+              "text": "小练习",
+              "parentId": "node-msamon3s-8-wosm"
+            },
+            {
+              "id": "node-msamon3s-a-6cb0",
+              "text": "项目练习",
+              "parentId": "node-msamon3s-8-wosm"
+            },
+            {
+              "id": "node-msamon3s-b-qttv",
+              "text": "复盘",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-c-39z1",
+              "text": "做得好的",
+              "parentId": "node-msamon3s-b-qttv"
+            },
+            {
+              "id": "node-msamon3s-d-w7gv",
+              "text": "待改进",
+              "parentId": "node-msamon3s-b-qttv"
+            }
+          ]
+        },
+        {
+          "id": "map-msap959o-h2k1",
+          "title": "新思维导图",
+          "nodes": [
+            {
+              "id": "node-msap959o-9ofw",
+              "text": "中心主题",
+              "parentId": null
+            },
+            {
+              "id": "node-msap959o-1bn0",
+              "text": "分支 1",
+              "parentId": "node-msap959o-9ofw"
+            },
+            {
+              "id": "node-msap959o-9dj3",
+              "text": "分支 2",
+              "parentId": "node-msap959o-9ofw"
+            }
+          ],
+          "edgeStyleId": "curve-soft"
+        }
+      ],
+      "en": [
+        {
+          "id": "map-msamon3s-hk4r",
+          "title": "学习计划",
+          "nodes": [
+            {
+              "id": "node-msamon3s-1-xy8t",
+              "text": "学习主题",
+              "parentId": null
+            },
+            {
+              "id": "node-msamon3s-2-od3u",
+              "text": "目标",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-3-8ene",
+              "text": "本周目标",
+              "parentId": "node-msamon3s-2-od3u"
+            },
+            {
+              "id": "node-msamon3s-4-ghg6",
+              "text": "本月目标",
+              "parentId": "node-msamon3s-2-od3u"
+            },
+            {
+              "id": "node-msamon3s-5-9mso",
+              "text": "资源",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-6-5b46",
+              "text": "课程 / 书",
+              "parentId": "node-msamon3s-5-9mso"
+            },
+            {
+              "id": "node-msamon3s-7-ds21",
+              "text": "笔记入口",
+              "parentId": "node-msamon3s-5-9mso"
+            },
+            {
+              "id": "node-msamon3s-8-wosm",
+              "text": "练习",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-9-93w9",
+              "text": "小练习",
+              "parentId": "node-msamon3s-8-wosm"
+            },
+            {
+              "id": "node-msamon3s-a-6cb0",
+              "text": "项目练习",
+              "parentId": "node-msamon3s-8-wosm"
+            },
+            {
+              "id": "node-msamon3s-b-qttv",
+              "text": "复盘",
+              "parentId": "node-msamon3s-1-xy8t"
+            },
+            {
+              "id": "node-msamon3s-c-39z1",
+              "text": "做得好的",
+              "parentId": "node-msamon3s-b-qttv"
+            },
+            {
+              "id": "node-msamon3s-d-w7gv",
+              "text": "待改进",
+              "parentId": "node-msamon3s-b-qttv"
+            }
+          ]
+        },
+        {
+          "id": "map-msap959o-h2k1",
+          "title": "New Mind Map",
+          "nodes": [
+            {
+              "id": "node-msap959o-9ofw",
+              "text": "Central Topics",
+              "parentId": null
+            },
+            {
+              "id": "node-msap959o-1bn0",
+              "text": "Branch 1",
+              "parentId": "node-msap959o-9ofw"
+            },
+            {
+              "id": "node-msap959o-9dj3",
+              "text": "Branch 2",
+              "parentId": "node-msap959o-9ofw"
+            }
+          ],
+          "edgeStyleId": "curve-soft"
+        }
+      ]
+    }
+  },
+  "knowledge-hub:contact-links": [
+    {
+      "id": "email",
+      "kind": "email",
+      "fields": [],
+      "coreSlots": [
+        "label",
+        "value"
+      ]
+    },
+    {
+      "id": "github",
+      "kind": "github",
+      "fields": [],
+      "coreSlots": [
+        "label",
+        "value"
+      ]
+    }
+  ],
+  "knowledge-hub:mindmap-library": [
+    {
+      "kind": "knowledge-hub-mindmap-template",
+      "version": 1,
+      "name": "新思维导图",
+      "title": "新思维导图",
+      "root": {
+        "text": "中心主题",
+        "children": [
+          {
+            "text": "分支 1"
+          },
+          {
+            "text": "分支 2"
+          }
+        ]
+      },
+      "id": "mtpl-msaoklou-wizxi",
+      "createdAt": "2026-08-01T18:04:09.294Z",
+      "updatedAt": "2026-08-01T18:04:09.294Z"
+    }
+  ],
+  "knowledge-hub:post-items": {}
+}

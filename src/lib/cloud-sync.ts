@@ -266,9 +266,9 @@ export async function syncUserOnLogin(
 }
 
 /**
- * Owner login: local non-empty stores are the source of truth and are pushed
- * to `site_stores` (so new mind maps / edits are not wiped by older cloud rows).
- * Empty local keys still pull from cloud. Regular users use private `user_stores`.
+ * Owner login: publish local stores only when they are at least as rich as
+ * cloud. Thinner local browsers (e.g. a fresh Edge profile) must not overwrite
+ * richer `site_stores` rows. Empty local keys still pull from cloud.
  */
 export async function syncOnLogin(
   supabase: SupabaseClient,
@@ -304,15 +304,16 @@ export async function syncOnLogin(
     const cloudEmpty =
       cloudPayload === undefined || isEmptyPayload(cloudPayload);
     const localEmpty = isEmptyPayload(localPayload);
+    const localScore = payloadScore(localPayload);
+    const cloudScore = payloadScore(cloudPayload);
 
-    // Owner machine: keep and publish local content first.
-    if (!localEmpty) {
+    if (!localEmpty && (cloudEmpty || localScore >= cloudScore)) {
       const result = await pushStore(supabase, name);
       if (result.error) {
         return { error: result.error, pulled, pushed };
       }
       pushed += 1;
-    } else if (!cloudEmpty) {
+    } else if (!cloudEmpty && (localEmpty || cloudScore > localScore)) {
       writeLocal(name, cloudPayload);
       pulled += 1;
     }
@@ -320,6 +321,43 @@ export async function syncOnLogin(
 
   emitStoreRefresh();
   return { error: null, pulled, pushed };
+}
+
+/**
+ * Owner tool: publish non-empty local stores that are at least as rich as
+ * the current cloud row. Prevents a thin browser from wiping richer
+ * `site_stores` via the Publish button; Cursor recovery can still push up.
+ */
+export async function publishLocalDefaults(
+  supabase: SupabaseClient,
+): Promise<{ error: string | null; pushed: number }> {
+  const { data, error } = await supabase
+    .from("site_stores")
+    .select("name, payload");
+
+  if (error) {
+    return { error: error.message, pushed: 0 };
+  }
+
+  const cloud = new Map(
+    (data ?? []).map((row) => [row.name as string, row.payload] as const),
+  );
+
+  let pushed = 0;
+  for (const name of CLOUD_SYNC_KEYS) {
+    const local = readLocal(name);
+    if (isEmptyPayload(local)) continue;
+    const cloudPayload = cloud.get(name);
+    const cloudEmpty =
+      cloudPayload === undefined || isEmptyPayload(cloudPayload);
+    if (!cloudEmpty && payloadScore(local) < payloadScore(cloudPayload)) {
+      continue;
+    }
+    const result = await pushStore(supabase, name);
+    if (result.error) return { error: result.error, pushed };
+    pushed += 1;
+  }
+  return { error: null, pushed };
 }
 
 export function keysForEvent(eventName: string): CloudSyncKey[] {

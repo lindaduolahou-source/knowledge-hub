@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/zh";
-import { isSiteOwner } from "@/lib/cloud-sync";
+import {
+  CLOUD_SYNC_EVENTS,
+  isSiteOwner,
+  publishLocalDefaults,
+} from "@/lib/cloud-sync";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -88,6 +92,53 @@ export function AuthButton({ locale, dict, immersive }: AuthButtonProps) {
     setOpen(false);
   }
 
+  async function handlePublish() {
+    if (!user || !isSiteOwner(user)) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const supabase = createClient();
+      const result = await publishLocalDefaults(supabase);
+      setMessage(
+        result.error
+          ? `${dict.auth.publishFail}: ${result.error}`
+          : `${dict.auth.publishOk} (${result.pushed})`,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleImportBackup() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/__restore_all.json?t=${Date.now()}`);
+      if (!res.ok) {
+        setMessage(dict.auth.importFail);
+        return;
+      }
+      const data = (await res.json()) as Record<string, unknown>;
+      for (const [key, value] of Object.entries(data)) {
+        if (!key.startsWith("knowledge-hub:") || key === "knowledge-hub:trash") {
+          continue;
+        }
+        window.localStorage.setItem(key, JSON.stringify(value));
+      }
+      for (const eventName of CLOUD_SYNC_EVENTS) {
+        window.dispatchEvent(new CustomEvent(eventName));
+      }
+      setMessage(dict.auth.importOk);
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 600);
+    } catch {
+      setMessage(dict.auth.importFail);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="relative">
       <button
@@ -115,6 +166,27 @@ export function AuthButton({ locale, dict, immersive }: AuthButtonProps) {
                   ? dict.auth.syncHintOwner
                   : dict.auth.syncHint}
               </p>
+              {isSiteOwner(user) && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void handlePublish()}
+                  className="w-full cursor-pointer rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-left text-sm transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+                >
+                  {dict.auth.publishDefaults}
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleImportBackup()}
+                className="w-full cursor-pointer rounded-lg border border-white/20 px-3 py-2 text-left text-sm transition-colors hover:bg-white/10 disabled:opacity-50"
+              >
+                {dict.auth.importLocalBackup}
+              </button>
+              {message && (
+                <p className="text-[11px] text-amber-200/90">{message}</p>
+              )}
               <button
                 type="button"
                 onClick={() => void handleSignOut()}
@@ -160,6 +232,14 @@ export function AuthButton({ locale, dict, immersive }: AuthButtonProps) {
                   : mode === "signin"
                     ? dict.auth.signIn
                     : dict.auth.signUp}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleImportBackup()}
+                className="w-full cursor-pointer rounded-lg border border-white/20 px-3 py-2 text-left text-sm transition-colors hover:bg-white/10 disabled:opacity-50"
+              >
+                {dict.auth.importLocalBackup}
               </button>
               <button
                 type="button"
